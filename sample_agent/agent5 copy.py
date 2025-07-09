@@ -8,7 +8,10 @@ from langgraph_supervisor import create_supervisor
 
 # from copilotkit import CopilotKitState
 from langgraph.prebuilt import create_react_agent
-from langgraph.prebuilt.chat_agent_executor import AgentState, AgentStateWithStructuredResponse
+from langgraph.prebuilt.chat_agent_executor import (
+    AgentState,
+    AgentStateWithStructuredResponse,
+)
 from langchain_groq import ChatGroq
 from langchain.chat_models import init_chat_model
 from typing import Annotated
@@ -21,43 +24,50 @@ from langgraph.constants import START, END
 from pydantic import BaseModel
 import operator
 from langchain_core.messages import BaseMessage
+from langgraph.prebuilt import create_react_agent
+from langgraph_swarm import create_handoff_tool, create_swarm
 
 model = init_chat_model("openai:gpt-4o-mini", temperature=0)
-model_groq = model #init_chat_model("groq:llama-3.1-8b-instant", temperature=0)
+model_groq = model  # init_chat_model("groq:llama-3.1-8b-instant", temperature=0)
 
 FINCODER_PROMPT = """
 
 You are a supervisor managing a weather specialist and a math specialist. 
 Assign tasks to the appropriate agent based on the user's request. 
-- For weather-related queries, use the weather_agent. Input: location (e.g. "New York")
-- For math calculations, use the calculator_agent. Input: expression (e.g. "2 + 3")
-- For any other question that is not related to weather or math, use the ask_user tool.
-
-Tools:
-- ask_user: This tool is used to ask the user any question about things you need to know. Input: question_to_user
-- weather_agent: This tool is used to get the weather for a given location. Input: location (e.g. "New York")
-- calculator_agent: This tool is used to calculate a simple math expression. Input: expression (e.g. "2 + 3")
+- For weather-related queries, handoff to the weather_agent. Input: location (e.g. "New York")
+- For math calculations, handoff to the calculator_agent. Input: expression (e.g. "2 + 3")
+- For any other question that is not related to weather or math, handoff to the `hitl_agent`.
 
 Note:
 - Before start, make a plan of what you need to do.
 """
 
+
 class CalculatorAgentState(AgentState):
     expression: str
     result: str
+
 
 class WeatherAgentOutput(BaseModel):
     location: str
     temperature: str
     date: str
     time: str
-    
+
+
 class WeatherAgentState(AgentStateWithStructuredResponse):
     location: str = ""
     temperature: str
     date: str = ""
     time: str = ""
     tool_call_id: str = ""
+
+
+class HitlAgentState(AgentState):
+    question: str
+    answer: str = ""
+    tool_call_id: str = ""
+
 
 # class AgentState(CopilotKitState):
 class SupervisorState(AgentState):
@@ -79,7 +89,7 @@ def get_weather(location: str, tool_call_id: Annotated[str, InjectedToolCallId])
     """
     Get the weather for a given location.
     """
-    print(f"Getting weather for {location}")    
+    print(f"Getting weather for {location}")
 
     return Command(
         update={
@@ -90,9 +100,10 @@ def get_weather(location: str, tool_call_id: Annotated[str, InjectedToolCallId])
             "tool_call_id": tool_call_id,
             "messages": [
                 ToolMessage(
-                    f"The weather for {location} is 70 degrees.", tool_call_id=tool_call_id
+                    f"The weather for {location} is 70 degrees.",
+                    tool_call_id=tool_call_id,
                 )
-            ]
+            ],
         }
     )
 
@@ -127,81 +138,54 @@ def calculate_math(expression: str):
         return f"Could not calculate {expression}. Please use format like '2 + 3' or '10 * 5'"
 
 
-def get_last_message_with_tool_call_id(messages):
-    """
-    Retorna a última mensagem da lista que possui o atributo 'tool_call_id'.
-    """
-    for msg in reversed(messages):
-        if hasattr(msg, "tool_call_id") or (isinstance(msg, dict) and "tool_call_id" in msg):
-            return msg
-    
-    return None
-
-# Create specialized agents
-# def create_weather_subgraph():
-#     """Create a specialized weather agent"""
-#     print("Creating weather agent")
-    
-#     def node_hook(state: WeatherAgentState, config: RunnableConfig):
-#         print(f"\n\nWeather agent state: {state.keys()}\n\n")
-        
-#         return Command(
-#             update={
-#                 "weather_agent_data": state,
-#                 "messages": state["messages"]
-#             }
-#         )
-        
-#     weather_agent = create_react_agent(
-#         model=model_groq,
-#         tools=[get_weather],
-#         prompt="You are a weather specialist. You are given a location and you need to return the weather for that location. No other information is needed. No extra text or explanation is needed. Just complete the task. OUTPUT: location = temperature (updated date and time)",
-#         name="weather_agent",
-#         state_schema=WeatherAgentState,
-#         debug=True,
-#         post_model_hook=node_hook,
-#     )
-    
-#     return weather_agent
-
-
 def create_weather_subgraph():
     """Create a specialized weather agent"""
     print("Creating weather agent")
-    
-    
+
     weather_agent = create_react_agent(
         model=model_groq,
-        tools=[get_weather],
+        tools=[
+            get_weather,
+            create_handoff_tool(
+                agent_name="calculator_agent",
+                description="Use this tool to calculate math expressions",
+            ),
+            create_handoff_tool(
+                agent_name="main_agent",
+                description="Use this tool to send the answer to the user.",
+            ),
+        ],
         prompt="You are a weather specialist. You are given a location and you need to return the weather for that location. No other information is needed. No extra text or explanation is needed. Just complete the task. OUTPUT: location = temperature (updated date and time)",
         name="weather_agent",
-        state_schema=WeatherAgentState
+        state_schema=WeatherAgentState,
     )
-    
-    def node_hook(state: WeatherAgentState, config: RunnableConfig):
-        print(f"Weather agent state: {state}")
-        
-        return Command(
-            graph=Command.PARENT,
-            update={
-                "weather_agent_data": state,
-                "messages": state["messages"] # [-1] fica em loop infinito [-2] é uma tool message, nao da pra injetar no parent
-            }
-        )
-    
-    weather_workflow = StateGraph(WeatherAgentState)
-    weather_workflow.add_node("weather_agent", weather_agent)
-    weather_workflow.add_node("node_hook", node_hook)
-    #
-    weather_workflow.add_edge(START, "weather_agent")
-    weather_workflow.add_edge("weather_agent", "node_hook") 
-    weather_workflow.add_edge("node_hook", END) 
-    # weather_workflow.add_edge("weather_agent", END)
-    #
-    weather_workflow.set_entry_point("weather_agent")
-    weather_workflow = weather_workflow.compile(name="weather_workflow")
-    
-    return weather_workflow
+
+    # def node_hook(state: WeatherAgentState, config: RunnableConfig):
+    #     print(f"Weather agent state: {state}")
+
+    #     return Command(
+    #         graph=Command.PARENT,
+    #         update={
+    #             "weather_agent_data": state,
+    #             "messages": state[
+    #                 "messages"
+    #             ],  # [-1] fica em loop infinito [-2] é uma tool message, nao da pra injetar no parent
+    #         },
+    #     )
+
+    # weather_workflow = StateGraph(WeatherAgentState)
+    # weather_workflow.add_node("weather_agent", weather_agent)
+    # weather_workflow.add_node("node_hook", node_hook)
+    # #
+    # weather_workflow.add_edge(START, "weather_agent")
+    # weather_workflow.add_edge("weather_agent", "node_hook")
+    # weather_workflow.add_edge("node_hook", END)
+    # # weather_workflow.add_edge("weather_agent", END)
+    # #
+    # weather_workflow.set_entry_point("weather_agent")
+    # weather_workflow = weather_workflow.compile(name="weather_workflow")
+
+    return weather_agent
 
 
 def create_calculator_agent():
@@ -209,20 +193,32 @@ def create_calculator_agent():
     print("Creating calculator agent")
     return create_react_agent(
         model="openai:gpt-4o-mini",
-        tools=[calculate_math],
+        tools=[
+            calculate_math,
+            create_handoff_tool(
+                agent_name="weather_agent",
+                description="Use this tool to get the weather for a given location",
+            ),
+            create_handoff_tool(
+                agent_name="main_agent",
+                description="Use this tool to send the answer to the user.",
+            ),
+        ],
         prompt="You are a math specialist. Help users with calculations and math problems. Be concise and to the point. no extra text or explanation is needed. Just complete the task. OUTPUT: expression = result",
         name="calculator_agent",
+        state_schema=CalculatorAgentState,
     )
+
 
 def pre_hook_supervisor_node(state: SupervisorState, config: RunnableConfig):
     print(f"Pre-hook supervisor: {state}")
-    
+
     return state
 
 
 def post_hook_supervisor_node(state: SupervisorState, config: RunnableConfig):
     print(f"Post-hook supervisor: {state}")
-    
+
     return state
 
 
@@ -231,22 +227,27 @@ def compile_workflow(workflow: StateGraph):
         os.environ.get("LANGGRAPH_API", "false").lower() == "true"
         or os.environ.get("LANGGRAPH_API_DIR") is not None
     )
-    
+
     if is_langgraph_api:
         return workflow.compile()
-    else:  
+    else:
         from langgraph.checkpoint.memory import MemorySaver
+
         memory = MemorySaver()
         return workflow.compile(checkpointer=memory)
-    
 
-@tool(description="This tool is used to ask the user any question. Its important always ask for things to make sure you're using the right information.")
+
+@tool(
+    description="This tool is used to ask the user any question. Its important always ask for things to make sure you're using the right information."
+)
 def ask_user(question_to_user: str, tool_call_id: Annotated[str, InjectedToolCallId]):
-    user_response = interrupt({
-        "type": "question",
-        "question": question_to_user,
-        "tool_call_id": tool_call_id,
-    })
+    user_response = interrupt(
+        {
+            "type": "question",
+            "question": question_to_user,
+            "tool_call_id": tool_call_id,
+        }
+    )
     print(f"User response: {user_response}")
 
     return f"The user answered with: {user_response.values()}"
@@ -265,7 +266,7 @@ def create_multi_agent_system():
         prompt=FINCODER_PROMPT,
         add_handoff_messages=False,
         add_handoff_back_messages=True,
-        state_schema=SupervisorState
+        state_schema=SupervisorState,
     )
     supervisor_workflow = compile_workflow(supervisor_workflow)
     # Create general workflow
@@ -273,19 +274,72 @@ def create_multi_agent_system():
     general_workflow.add_node("pre_hook_supervisor_node", pre_hook_supervisor_node)
     general_workflow.add_node("fincoder_supervisor_workflow", supervisor_workflow)
     general_workflow.add_node("post_hook_supervisor_node", post_hook_supervisor_node)
-    
+
     general_workflow.add_edge(START, "pre_hook_supervisor_node")
-    general_workflow.add_edge("pre_hook_supervisor_node", "fincoder_supervisor_workflow")
-    general_workflow.add_edge("fincoder_supervisor_workflow", "post_hook_supervisor_node")
+    general_workflow.add_edge(
+        "pre_hook_supervisor_node", "fincoder_supervisor_workflow"
+    )
+    general_workflow.add_edge(
+        "fincoder_supervisor_workflow", "post_hook_supervisor_node"
+    )
     general_workflow.add_edge("post_hook_supervisor_node", END)
-    
+
     general_workflow.set_entry_point("pre_hook_supervisor_node")
-    
+
     # Compile the general workflow
     graph = compile_workflow(general_workflow)
 
     return graph
 
 
+def create_multi_agent_system_swarm_mode():
+    """Create the multi-agent system with supervisor"""
+    # Create specialized agents
+    weather_agent = create_weather_subgraph()
+    calculator_agent = create_calculator_agent()
+
+    hitl_agent = create_react_agent(
+        model=model,
+        tools=[
+            ask_user,
+            create_handoff_tool(
+                agent_name="main_agent",
+                description="Use this tool to send the answer to the user.",
+            ),
+        ],
+        prompt="""You are a human in the loop. Your main goal is to send questions to the user to get the information you need to complete the task.""",
+        name="hitl_agent",
+        state_schema=HitlAgentState,
+    )
+
+    main_agent = create_react_agent(
+        model=model,
+        tools=[
+            create_handoff_tool(
+                agent_name="hitl_agent",
+                description="Use this tool to send questions to the user to get the information you need to complete the task.",
+            ),
+            create_handoff_tool(
+                agent_name="weather_agent",
+                description="Use this tool to get the weather for a given location.",
+            ),
+            create_handoff_tool(
+                agent_name="calculator_agent",
+                description="Use this tool to calculate a simple math expression.",
+            ),
+        ],
+        prompt=FINCODER_PROMPT,
+        name="main_agent",
+        state_schema=SupervisorState,
+    )
+
+    workflow = create_swarm(
+        [main_agent, weather_agent, hitl_agent, calculator_agent],
+        default_active_agent="main_agent",
+    )
+    graph = compile_workflow(workflow)
+    return graph
+
+
 # Create the multi-agent system
-graph = create_multi_agent_system()
+graph = create_multi_agent_system_swarm_mode()

@@ -14,6 +14,10 @@ dependencies = [
     "langgraph-cli[inmem]>=0.3.3",
     "langchain>=0.3.26",
     "langchain-groq>=0.3.5",
+    "copilotkit>=0.1.52",
+    "langchain-community>=0.3.27",
+    "langgraph-swarm>=0.0.12",
+    "ipykernel>=6.29.5",
 ]
 
 [project.scripts]
