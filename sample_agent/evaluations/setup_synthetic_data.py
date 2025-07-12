@@ -166,10 +166,10 @@ def test_imports():
         return False
     
     try:
-        from sample_agent.evaluations.evaluators.evaluator_registry import EvaluatorRegistry
-        print("✅ EvaluatorRegistry")
+        from sample_agent.evaluations.evaluators.evaluator_registry import get_evaluators_for_profile
+        print("✅ Evaluator Registry Functions")
     except ImportError as e:
-        print(f"❌ EvaluatorRegistry - erro: {e}")
+        print(f"❌ Evaluator Registry Functions - erro: {e}")
         return False
     
     try:

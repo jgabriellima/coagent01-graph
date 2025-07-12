@@ -41,7 +41,7 @@ sys.path.insert(0, str(project_root))
 
 from sample_agent.evaluations.synthetic_data_generator import SyntheticDataGenerator
 from sample_agent.evaluations.evaluators.run_evaluations import EvaluationRunner
-from sample_agent.evaluations.evaluators.evaluator_registry import EvaluatorRegistry
+from sample_agent.evaluations.evaluators.evaluator_registry import get_evaluators_for_profile
 from langsmith import Client
 
 
@@ -232,15 +232,9 @@ class EvaluationPipeline:
             
             print(f"📊 Encontrados {len(runs)} runs para evaluation")
             
-            # Configurar evaluator registry
-            registry = EvaluatorRegistry()
-            # Map evaluation profile to appropriate registry type
-            if self.args.evaluator_profile == "minimal":
-                evaluators = registry.get_evaluators("agentic", registry_type="minimal")
-            elif self.args.evaluator_profile == "comprehensive":
-                evaluators = registry.get_evaluators("agentic", registry_type="comprehensive")
-            else:
-                evaluators = registry.get_evaluators(self.args.evaluator_profile)
+            # Obter evaluators para o perfil especificado
+            evaluators_list = get_evaluators_for_profile(self.args.evaluator_profile)
+            evaluators = {evaluator.name(): evaluator for evaluator in evaluators_list}
             
             print(f"🔧 Usando perfil '{self.args.evaluator_profile}' com {len(evaluators)} evaluators:")
             for name in evaluators.keys():

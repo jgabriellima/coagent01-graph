@@ -326,7 +326,7 @@ Para adicionar novos tipos de cenários ou evaluators:
 
 1. Edite os templates em `synthetic_data_generator.py`
 2. Adicione novos evaluators em `evaluators/`
-3. Registre no `evaluator_registry.py`
+3. Adicione na configuração `EVALUATOR_PROFILES` em `evaluator_registry.py`
 4. Teste com `--quick-test`
 
 ---
