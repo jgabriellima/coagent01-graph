@@ -4,12 +4,13 @@ Example Usage of Synthetic Data Generators
 ------------------------------------------
 
 Demonstrates how to use both CustomSynthesizer and DeepEvalSynthesizer
-for synthetic data generation with automatic LangSmith tracing.
+with all available features including dual modes, workflow analysis, and custom descriptions.
 """
 
 import asyncio
 from pathlib import Path
 import sys
+from typing import List
 
 # Add path to import agents
 sys.path.append(str(Path(__file__).parent.parent.parent.parent.parent))
@@ -19,222 +20,355 @@ from sample_agent.evaluations.datasets.generator.synthesizer import (
     BaseSynthesizer,
     CustomSynthesizer,
     DeepEvalSynthesizer,
-    SynthesizerConfig
+    SynthesizerConfig,
+    ExecutionMode
 )
 
 
-async def example_custom_synthesizer():
-    """Example using CustomSynthesizer with automatic workflow analysis"""
+async def example_custom_synthesizer_dual_modes():
+    """Example using CustomSynthesizer with both SYNTHETIC and EXECUTION modes"""
     
-    print("🔄 Running CustomSynthesizer Example")
-    print("=" * 50)
+    print("🔄 Running CustomSynthesizer Dual Modes Example")
+    print("=" * 60)
     
     # Configuration
     config = SynthesizerConfig(
-        project_name="custom-synthesizer-demo",
-        tags=["demo", "custom", "swarm"],
+        project_name="custom-dual-modes-demo",
+        tags=["demo", "custom", "dual-modes"],
         trace_metadata={
             "environment": "development",
             "version": "1.0",
-            "synthesis_type": "custom"
+            "synthesis_type": "custom_dual"
         },
-        num_scenarios=3
+        num_scenarios=2
     )
-    
-    # Initialize synthesizer
-    synthesizer = CustomSynthesizer(config)
     
     # Create real workflow
     workflow = create_multi_agent_system_swarm_mode()
     
-    # Generate synthetic dataset (automatically analyzes workflow structure)
-    examples = await synthesizer.generate_synthetic_dataset(
+    # SYNTHETIC MODE: Analysis + LLM generation (no execution)
+    print("\n🎭 SYNTHETIC MODE Example")
+    print("-" * 30)
+    
+    synthetic_synthesizer = CustomSynthesizer(config, mode=ExecutionMode.SYNTHETIC)
+    synthetic_examples = await synthetic_synthesizer.generate_synthetic_dataset(
         workflow=workflow,
-        num_scenarios=3
+        num_scenarios=2
     )
     
-    print(f"\n📊 CustomSynthesizer Results:")
-    print(f"   - Generated examples: {len(examples)}")
-    print(f"   - LangSmith project: {config.project_name}")
+    print(f"\n📊 SYNTHETIC Mode Results:")
+    print(f"   - Generated examples: {len(synthetic_examples)}")
+    print(f"   - Mode: {synthetic_examples[0].metadata.get('execution_mode') if synthetic_examples else 'N/A'}")
+    print(f"   - No real workflow execution performed")
     
-    # Show workflow analysis results
-    if examples:
-        workflow_analysis = examples[0].metadata.get("workflow_analysis", {})
-        print(f"\n🔍 Workflow Analysis:")
-        print(f"   - Type: {workflow_analysis.get('type', 'Unknown')}")
-        print(f"   - Agents detected: {list(workflow_analysis.get('agents', {}).keys())}")
-        print(f"   - Capabilities: {len(workflow_analysis.get('capabilities', []))}")
-        
-        print(f"\n📝 Sample Scenario:")
-        example = examples[0]
-        print(f"   - Complexity: {example.metadata.get('complexity')}")
-        print(f"   - Target agents: {example.metadata.get('target_agents', [])}")
-        print(f"   - Required tools: {example.metadata.get('required_tools', [])}")
+    # EXECUTION MODE: Analysis + real execution + traces  
+    print("\n🚀 EXECUTION MODE Example")
+    print("-" * 30)
     
-    return examples
+    execution_synthesizer = CustomSynthesizer(config, mode=ExecutionMode.EXECUTION)
+    execution_examples = await execution_synthesizer.generate_synthetic_dataset(
+        workflow=workflow,
+        num_scenarios=2
+    )
+    
+    print(f"\n📊 EXECUTION Mode Results:")
+    print(f"   - Generated examples: {len(execution_examples)}")
+    print(f"   - Mode: {execution_examples[0].metadata.get('execution_mode') if execution_examples else 'N/A'}")
+    print(f"   - Real workflow execution performed")
+    
+    # Show key differences
+    print(f"\n🔍 Key Differences:")
+    print(f"   • SYNTHETIC: Fast generation, simulated responses, no infrastructure load")
+    print(f"   • EXECUTION: Real traces, actual performance data, system validation")
+    
+    return synthetic_examples, execution_examples
 
 
-async def example_deepeval_synthesizer():
-    """Example using DeepEvalSynthesizer for dataset generation"""
+async def example_deepeval_with_enhancements():
+    """Example using DeepEvalSynthesizer with all enhancement options"""
     
-    print("\n🔄 Running DeepEvalSynthesizer Example")
-    print("=" * 50)
+    print("\n🔄 Running DeepEvalSynthesizer Enhanced Example")
+    print("=" * 60)
     
     # Configuration
     config = SynthesizerConfig(
-        project_name="deepeval-synthesizer-demo",
-        tags=["demo", "deepeval", "agentic"],
+        project_name="deepeval-enhanced-demo",
+        tags=["demo", "deepeval", "enhanced"],
         trace_metadata={
             "environment": "development",
             "version": "1.0",
-            "synthesis_type": "deepeval"
+            "synthesis_type": "deepeval_enhanced"
         },
-        num_scenarios=5
+        num_scenarios=3
     )
     
     # Initialize synthesizer
     synthesizer = DeepEvalSynthesizer(config)
-    
-    # Generate synthetic dataset with optional workflow analysis
-    examples = await synthesizer.generate_synthetic_dataset(num_scenarios=5)
-    
-    print(f"\n📊 DeepEvalSynthesizer Results:")
-    print(f"   - Generated examples: {len(examples)}")
-    print(f"   - LangSmith project: {config.project_name}")
-    print(f"   - Automatically persisted to LangSmith")
-    
-    # Show sample outputs
-    print("\n📝 Sample Generated Examples:")
-    for i, example in enumerate(examples[:2]):  # Show first 2
-        print(f"\n   Example {i+1}:")
-        print(f"   Input: {example.input_data}")
-        print(f"   Output format: {list(example.expected_output.keys())}")
-        print(f"   Tags: {example.metadata['tags'][:3]}...")  # Show first 3 tags
-    
-    print(f"\n🏷️  Dynamic tagging applied for LangSmith filtering")
-    
-    return examples
-
-
-async def combined_workflow_example():
-    """Example of combined workflow using both synthesizers"""
-    
-    print("\n🔄 Running Combined Workflow Example")
-    print("=" * 50)
-    
-    # Step 1: Generate synthetic dataset with DeepEval
-    print("Step 1: Generate baseline synthetic dataset with DeepEval...")
-    deepeval_config = SynthesizerConfig(
-        project_name="combined-workflow",
-        tags=["combined", "deepeval", "baseline"],
-        trace_metadata={"step": "baseline_generation"},
-        num_scenarios=3
-    )
-    
-    deepeval_synthesizer = DeepEvalSynthesizer(deepeval_config)
-    
-    deepeval_examples = await deepeval_synthesizer.generate_synthetic_dataset(num_scenarios=3)
-    print(f"   ✅ Generated {len(deepeval_examples)} baseline examples")
-    
-    # Step 2: Generate with real execution using Custom
-    print("\nStep 2: Generate real execution examples with CustomSynthesizer...")
-    custom_config = SynthesizerConfig(
-        project_name="combined-workflow",
-        tags=["combined", "custom", "real-execution"],
-        trace_metadata={"step": "real_execution"},
-        num_scenarios=3
-    )
-    
-    custom_synthesizer = CustomSynthesizer(custom_config)
     workflow = create_multi_agent_system_swarm_mode()
     
-    custom_examples = await custom_synthesizer.generate_synthetic_dataset(
+    # Example 1: Basic generation (no enhancements)
+    print("\n📝 Example 1: Basic Generation")
+    print("-" * 30)
+    
+    basic_examples = await synthesizer.generate_synthetic_dataset(num_scenarios=2)
+    print(f"   ✅ Generated {len(basic_examples)} basic examples")
+    
+    # Example 2: With workflow analysis enhancement
+    print("\n🔍 Example 2: With Workflow Analysis")
+    print("-" * 30)
+    
+    # Reset synthesizer for new configuration
+    synthesizer.synthesizer = None
+    
+    workflow_examples = await synthesizer.generate_synthetic_dataset(
         workflow=workflow,
-        num_scenarios=3
+        num_scenarios=2
     )
+    print(f"   ✅ Generated {len(workflow_examples)} workflow-enhanced examples")
     
-    print(f"   ✅ Generated {len(custom_examples)} real execution examples")
+    # Example 3: With custom task description and scenario
+    print("\n🎯 Example 3: With Custom Descriptions")
+    print("-" * 30)
     
-    # Step 3: Compare approaches
-    print("\nStep 3: Comparison of approaches...")
-    print(f"   📊 DeepEval: {len(deepeval_examples)} synthetic examples")
-    print(f"   🔧 Custom: {len(custom_examples)} real execution examples")
+    # Reset synthesizer for new configuration
+    synthesizer.synthesizer = None
     
-    # Show tagging strategy
-    if deepeval_examples and custom_examples:
-        print(f"\n🏷️  Tag Strategy Comparison:")
-        print(f"   DeepEval tags: {deepeval_examples[0].metadata['tags']}")
-        print(f"   Custom tags: {custom_examples[0].metadata['tags'][:5]}...")  # Show first 5
+    custom_examples = await synthesizer.generate_synthetic_dataset(
+        workflow=workflow,
+        num_scenarios=2,
+        task_description="Multi-agent system for mathematical calculations and weather information",
+        scenario="Users request complex tasks requiring coordination between Alice (math) and Bob (weather) agents"
+    )
+    print(f"   ✅ Generated {len(custom_examples)} fully-enhanced examples")
     
-    print(f"\n💡 Both approaches trace to same LangSmith project with different tags")
-    print(f"   This allows easy filtering and comparison in LangSmith")
+    # Show enhancement comparison
+    print(f"\n📊 Enhancement Comparison:")
+    if basic_examples:
+        basic_context = basic_examples[0].metadata.get('generation_context', {})
+        print(f"   Basic: workflow={basic_context.get('workflow_enhanced')}, task={basic_context.get('task_enhanced')}")
+    
+    if custom_examples:
+        enhanced_context = custom_examples[0].metadata.get('generation_context', {})
+        print(f"   Enhanced: workflow={enhanced_context.get('workflow_enhanced')}, task={enhanced_context.get('task_enhanced')}")
+        
+        # Show enhanced tags
+        enhanced_tags = [tag for tag in custom_examples[0].metadata['tags'] if tag.startswith('enhanced:')]
+        print(f"   Enhanced tags: {enhanced_tags}")
+    
+    return basic_examples, workflow_examples, custom_examples
 
 
-async def workflow_analysis_demo():
-    """Demonstrate automatic workflow analysis capabilities"""
+async def example_workflow_analysis_comparison():
+    """Compare workflow analysis between synthesizers"""
     
-    print("\n🔬 Workflow Analysis Demo")
-    print("=" * 50)
+    print("\n🔬 Workflow Analysis Comparison")
+    print("=" * 60)
     
-    config = SynthesizerConfig(
-        project_name="workflow-analysis-demo",
-        tags=["demo", "analysis"],
-        trace_metadata={"demo_type": "analysis"},
+    workflow = create_multi_agent_system_swarm_mode()
+    
+    # CustomSynthesizer analysis
+    print("🔧 CustomSynthesizer Analysis:")
+    custom_config = SynthesizerConfig(
+        project_name="analysis-comparison",
+        tags=["analysis", "custom"],
+        trace_metadata={"type": "analysis"},
         num_scenarios=1
     )
     
-    synthesizer = CustomSynthesizer(config)
+    custom_synthesizer = CustomSynthesizer(custom_config)
+    custom_analysis = custom_synthesizer.analyze_workflow_structure(workflow)
+    
+    print(f"   - Type: {custom_analysis.get('type')}")
+    print(f"   - Agents: {list(custom_analysis.get('agents', {}).keys())}")
+    print(f"   - Capabilities: {len(custom_analysis.get('capabilities', []))}")
+    
+    # DeepEvalSynthesizer analysis
+    print("\n🤖 DeepEvalSynthesizer Analysis:")
+    deepeval_config = SynthesizerConfig(
+        project_name="analysis-comparison",
+        tags=["analysis", "deepeval"],
+        trace_metadata={"type": "analysis"},
+        num_scenarios=1
+    )
+    
+    deepeval_synthesizer = DeepEvalSynthesizer(deepeval_config)
+    deepeval_analysis = deepeval_synthesizer.analyze_workflow_structure(workflow)
+    
+    print(f"   - Type: {deepeval_analysis.get('type')}")
+    print(f"   - Agents: {list(deepeval_analysis.get('agents', {}).keys())}")
+    print(f"   - Capabilities: {len(deepeval_analysis.get('capabilities', []))}")
+    
+    print(f"\n✨ Both synthesizers use the same analysis engine from BaseSynthesizer")
+
+
+async def example_unified_interface():
+    """Demonstrate unified interface polymorphic usage"""
+    
+    print("\n🔗 Unified Interface Example")
+    print("=" * 60)
+    
+    config = SynthesizerConfig(
+        project_name="unified-interface-demo",
+        tags=["demo", "unified"],
+        trace_metadata={"demo_type": "polymorphic"},
+        num_scenarios=2
+    )
+    
     workflow = create_multi_agent_system_swarm_mode()
     
-    # Just analyze without generating scenarios
-    print("🔍 Analyzing workflow structure...")
-    workflow_context = synthesizer.analyze_workflow_structure(workflow)
+    # List of synthesizers (polymorphic usage)
+    synthesizers: List[BaseSynthesizer] = [
+        CustomSynthesizer(config, mode=ExecutionMode.SYNTHETIC),
+        CustomSynthesizer(config, mode=ExecutionMode.EXECUTION),
+        DeepEvalSynthesizer(config)
+    ]
     
-    print(f"\n📊 Detailed Workflow Analysis:")
-    print(f"   - Type: {workflow_context.get('type')}")
-    print(f"   - Node count: {workflow_context.get('node_count', 'Unknown')}")
-    print(f"   - State fields: {workflow_context.get('state_fields', [])}")
-    print(f"   - Description: {workflow_context.get('workflow_description')}")
+    synthesizer_names = ["Custom-SYNTHETIC", "Custom-EXECUTION", "DeepEval"]
     
-    print(f"\n🤖 Detected Agents:")
-    agents = workflow_context.get('agents', {})
-    for agent_name, agent_info in agents.items():
-        print(f"   - {agent_name}:")
-        print(f"     • Capabilities: {agent_info.get('capabilities', [])}")
-        print(f"     • Tools: {agent_info.get('tools', [])}")
-        if agent_info.get('prompt_info'):
-            print(f"     • Prompt info: {agent_info['prompt_info'][:100]}...")
+    print("🔄 Running all synthesizers with unified interface...")
     
-    print(f"\n✨ This analysis is used automatically to generate appropriate scenarios")
+    all_results = []
+    for i, synthesizer in enumerate(synthesizers):
+        print(f"\n   Testing {synthesizer_names[i]}:")
+        
+        try:
+            if isinstance(synthesizer, CustomSynthesizer):
+                # CustomSynthesizer requires workflow
+                examples = await synthesizer.generate_synthetic_dataset(
+                    workflow=workflow,
+                    num_scenarios=1
+                )
+            else:
+                # DeepEvalSynthesizer can work with or without workflow
+                examples = await synthesizer.generate_synthetic_dataset(
+                    workflow=workflow,
+                    num_scenarios=1
+                )
+            
+            print(f"      ✅ Generated {len(examples)} examples")
+            all_results.append((synthesizer_names[i], examples))
+            
+        except Exception as e:
+            print(f"      ❌ Failed: {e}")
+            all_results.append((synthesizer_names[i], []))
+    
+    print(f"\n📊 Unified Interface Results:")
+    for name, examples in all_results:
+        count = len(examples)
+        status = "✅" if count > 0 else "❌"
+        print(f"   {status} {name}: {count} examples")
+    
+    print(f"\n🎯 All synthesizers implement BaseSynthesizer interface")
 
 
-async def main():
-    """Main function to run all examples"""
+async def example_production_workflow():
+    """Production-ready workflow example with error handling"""
     
-    print("🚀 Synthetic Data Generation Examples")
+    print("\n🏭 Production Workflow Example")
     print("=" * 60)
     
     try:
-        # Run CustomSynthesizer example
-        await example_custom_synthesizer()
+        config = SynthesizerConfig(
+            project_name="production-workflow-demo",
+            tags=["production", "demo", "robust"],
+            trace_metadata={
+                "environment": "production",
+                "version": "2.0",
+                "workflow_type": "multi_synthesizer"
+            },
+            num_scenarios=3
+        )
         
-        # Run DeepEvalSynthesizer example
-        await example_deepeval_synthesizer()
+        workflow = create_multi_agent_system_swarm_mode()
         
-        # Run combined workflow example
-        await combined_workflow_example()
+        print("📋 Production Workflow Steps:")
         
-        # Demonstrate workflow analysis
-        await workflow_analysis_demo()
+        # Step 1: Generate baseline with DeepEval
+        print("\n1️⃣ Generating baseline dataset...")
+        deepeval_synthesizer = DeepEvalSynthesizer(config)
         
-        print("\n" + "=" * 60)
-        print("✅ All examples completed successfully!")
-        print("📈 Check LangSmith for automatic tracing with dynamic tags")
-        print("🔍 Workflow analysis enables smart scenario generation")
-        print("=" * 60)
+        baseline_examples = await deepeval_synthesizer.generate_synthetic_dataset(
+            workflow=workflow,
+            num_scenarios=3,
+            task_description="Production-grade multi-agent system evaluation",
+            scenario="Real-world user interactions requiring agent coordination"
+        )
+        
+        print(f"   ✅ Baseline: {len(baseline_examples)} examples")
+        
+        # Step 2: Generate validation with real execution
+        print("\n2️⃣ Generating validation dataset...")
+        custom_synthesizer = CustomSynthesizer(config, mode=ExecutionMode.EXECUTION)
+        
+        validation_examples = await custom_synthesizer.generate_synthetic_dataset(
+            workflow=workflow,
+            num_scenarios=2
+        )
+        
+        print(f"   ✅ Validation: {len(validation_examples)} examples")
+        
+        # Step 3: Generate synthetic for volume
+        print("\n3️⃣ Generating volume dataset...")
+        volume_synthesizer = CustomSynthesizer(config, mode=ExecutionMode.SYNTHETIC)
+        
+        volume_examples = await volume_synthesizer.generate_synthetic_dataset(
+            workflow=workflow,
+            num_scenarios=5
+        )
+        
+        print(f"   ✅ Volume: {len(volume_examples)} examples")
+        
+        total_examples = len(baseline_examples) + len(validation_examples) + len(volume_examples)
+        
+        print(f"\n📊 Production Workflow Results:")
+        print(f"   📈 Total examples: {total_examples}")
+        print(f"   🎯 Baseline (DeepEval): {len(baseline_examples)}")
+        print(f"   ✅ Validation (Real execution): {len(validation_examples)}")
+        print(f"   📦 Volume (Synthetic): {len(volume_examples)}")
+        print(f"   🔗 Project: {config.project_name}")
+        
+        print(f"\n🏷️  All examples tagged and traced to LangSmith for analysis")
         
     except Exception as e:
-        print(f"\n❌ Error running examples: {e}")
+        print(f"❌ Production workflow failed: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+async def main():
+    """Main function to run all enhanced examples"""
+    
+    print("🚀 Enhanced Synthetic Data Generation Examples")
+    print("=" * 80)
+    
+    try:
+        # Run CustomSynthesizer dual modes example
+        await example_custom_synthesizer_dual_modes()
+        
+        # Run DeepEvalSynthesizer enhanced example
+        await example_deepeval_with_enhancements()
+        
+        # Run workflow analysis comparison
+        await example_workflow_analysis_comparison()
+        
+        # Run unified interface example
+        await example_unified_interface()
+        
+        # Run production workflow example
+        await example_production_workflow()
+        
+        print("\n" + "=" * 80)
+        print("✅ All enhanced examples completed successfully!")
+        print("🎭 CustomSynthesizer: SYNTHETIC vs EXECUTION modes demonstrated")
+        print("🎯 DeepEvalSynthesizer: task_description & scenario parameters demonstrated") 
+        print("🔍 Workflow analysis: Enhanced generation quality demonstrated")
+        print("🔗 Unified interface: Polymorphic usage demonstrated")
+        print("🏭 Production workflow: Robust multi-synthesizer pattern demonstrated")
+        print("📈 Check LangSmith for comprehensive tracing with dynamic tags")
+        print("=" * 80)
+        
+    except Exception as e:
+        print(f"\n❌ Error running enhanced examples: {e}")
         import traceback
         traceback.print_exc()
 
