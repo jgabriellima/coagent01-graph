@@ -1,0 +1,168 @@
+{
+  "type": "CompiledStateGraph",
+  "agents": {
+    "Main_Agent": {
+      "name": "Main_Agent",
+      "capabilities": [
+        "task_coordination",
+        "agent_routing",
+        "user_interaction",
+        "workflow_management"
+      ],
+      "tools": [
+        "ask_user"
+      ],
+      "prompt_info": "Main Agent, responsible for coordinating tasks and managing user interaction"
+    },
+    "Alice": {
+      "name": "Alice",
+      "capabilities": [
+        "mathematical_calculations",
+        "numeric_operations",
+        "arithmetic_solving",
+        "expression_evaluation"
+      ],
+      "tools": [
+        "calculate_math"
+      ],
+      "prompt_info": "Alice, expert in mathematics and numeric calculations"
+    },
+    "Bob": {
+      "name": "Bob",
+      "capabilities": [
+        "weather_reporting",
+        "location_based_services",
+        "climate_information",
+        "pirate_communication"
+      ],
+      "tools": [
+        "get_weather",
+        "ask_user"
+      ],
+      "prompt_info": "Bob, the pirate weather specialist"
+    }
+  },
+  "capabilities": [
+    "task_coordination",
+    "agent_routing",
+    "user_interaction",
+    "workflow_management",
+    "mathematical_calculations",
+    "numeric_operations",
+    "arithmetic_solving",
+    "expression_evaluation",
+    "weather_reporting",
+    "location_based_services",
+    "climate_information",
+    "pirate_communication"
+  ],
+  "tools": [
+    "ask_user",
+    "calculate_math",
+    "get_weather",
+    "ask_user"
+  ],
+  "workflow_description": "Multi-agent system with 3 agents: Main_Agent (task_coordination, agent_routing, user_interaction, workflow_management), Alice (mathematical_calculations, numeric_operations, arithmetic_solving, expression_evaluation), Bob (weather_reporting, location_based_services, climate_information, pirate_communication). System capabilities include: climate_information, numeric_operations, task_coordination, location_based_services, workflow_management, weather_reporting, user_interaction, expression_evaluation, pirate_communication, agent_routing, arithmetic_solving, mathematical_calculations",
+  "node_count": 4,
+  "detailed_agents": {
+    "Main_Agent": {
+      "name": "Main_Agent",
+      "capabilities": [
+        "task_coordination",
+        "agent_routing",
+        "user_interaction",
+        "workflow_management"
+      ],
+      "tools": [
+        "ask_user"
+      ],
+      "prompt_info": "Main Agent, responsible for coordinating tasks and managing user interaction",
+      "role_description": "Task coordinator and orchestrator",
+      "interaction_patterns": [
+        "Receives initial user requests",
+        "Delegates tasks to specialized agents",
+        "Coordinates multi-agent workflows",
+        "Collaborates with 2 other agents"
+      ]
+    },
+    "Alice": {
+      "name": "Alice",
+      "capabilities": [
+        "mathematical_calculations",
+        "numeric_operations",
+        "arithmetic_solving",
+        "expression_evaluation"
+      ],
+      "tools": [
+        "calculate_math"
+      ],
+      "prompt_info": "Alice, expert in mathematics and numeric calculations",
+      "role_description": "Mathematical computation specialist",
+      "interaction_patterns": [
+        "Collaborates with 2 other agents"
+      ]
+    },
+    "Bob": {
+      "name": "Bob",
+      "capabilities": [
+        "weather_reporting",
+        "location_based_services",
+        "climate_information",
+        "pirate_communication"
+      ],
+      "tools": [
+        "get_weather",
+        "ask_user"
+      ],
+      "prompt_info": "Bob, the pirate weather specialist",
+      "role_description": "Weather information provider",
+      "interaction_patterns": [
+        "Collaborates with 2 other agents"
+      ]
+    }
+  },
+  "workflow_insights": {
+    "agent_count": 3,
+    "total_capabilities": 12,
+    "total_tools": 4,
+    "workflow_type": "Small multi-agent system",
+    "complexity_level": "High complexity",
+    "collaboration_pattern": "Hub-and-spoke (coordinator pattern)"
+  },
+  "complexity_assessment": {
+    "agent_complexity": {
+      "count": 3,
+      "assessment": "Medium"
+    },
+    "tool_complexity": {
+      "count": 4,
+      "assessment": "Low"
+    },
+    "capability_complexity": {
+      "count": 12,
+      "assessment": "Medium"
+    },
+    "overall_complexity": "High complexity"
+  },
+  "testing_recommendations": {
+    "unit_tests": [
+      "Test Main_Agent individual capabilities",
+      "Test Alice individual capabilities",
+      "Test Bob individual capabilities",
+      "Test ask_user tool functionality",
+      "Test calculate_math tool functionality",
+      "Test get_weather tool functionality",
+      "Test ask_user tool functionality"
+    ],
+    "integration_tests": [
+      "Test agent handoff mechanisms",
+      "Test multi-agent coordination"
+    ],
+    "performance_tests": [],
+    "edge_cases": [
+      "Test with invalid inputs",
+      "Test with concurrent requests",
+      "Test with agent failures"
+    ]
+  }
+}

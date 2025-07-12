@@ -52,8 +52,10 @@ class DeepEvalSynthesizer(BaseSynthesizer):
 
             default_task = f"Multi-agent workflow execution with {len(agents)} agents: {', '.join(agents)}"
             default_scenario = f"Agents coordinate to execute tools ({', '.join(tools)}), handle user requests, and manage state. Capabilities: {', '.join(capabilities)}"
-            
-            print(f"   🎯 Enhanced with workflow context: {len(agents)} agents, {len(tools)} tools")
+
+            print(
+                f"   🎯 Enhanced with workflow context: {len(agents)} agents, {len(tools)} tools"
+            )
         else:
             default_task = (
                 "Multi-agent workflow execution with tool calls and coordination"
@@ -92,7 +94,7 @@ class DeepEvalSynthesizer(BaseSynthesizer):
                 f"Generate structured conversation outputs for {workflow_desc}"
             )
             default_scenario = f"User-assistant interactions with structured JSON responses for {workflow_desc}"
-            
+
             print(f"   🎯 Enhanced with workflow description: {workflow_desc}")
         else:
             default_task = (
@@ -127,13 +129,13 @@ class DeepEvalSynthesizer(BaseSynthesizer):
     ) -> List[SyntheticExample]:
         """
         Generate synthetic dataset with optional workflow analysis and custom descriptions.
-        
+
         Args:
             workflow: Optional workflow for automatic structure analysis
             num_scenarios: Number of synthetic examples to generate
             task_description: Custom task description (enhances generation quality)
             scenario: Custom scenario description (enhances generation quality)
-            
+
         Returns:
             List of synthetic examples with standardized format
         """
@@ -142,13 +144,13 @@ class DeepEvalSynthesizer(BaseSynthesizer):
 
         print(f"🤖 DeepEvalSynthesizer starting generation...")
         print(f"   📊 Target scenarios: {num_scenarios}")
-        
+
         # Analyze workflow if provided for enhanced generation
         workflow_context = None
         if workflow:
             print(f"🔍 Analyzing workflow structure for better generation...")
             workflow_context = self.analyze_workflow_structure(workflow)
-            
+
             print(f"📊 Workflow Analysis Results:")
             print(f"   - Type: {workflow_context.get('type', 'Unknown')}")
             print(f"   - Agents: {list(workflow_context.get('agents', {}).keys())}")
@@ -162,8 +164,8 @@ class DeepEvalSynthesizer(BaseSynthesizer):
             try:
                 self.setup_agentic_synthesizer(
                     task_description=task_description,
-                    scenario=scenario, 
-                    workflow_context=workflow_context
+                    scenario=scenario,
+                    workflow_context=workflow_context,
                 )
                 print(f"   ✅ DeepEval synthesizer configured")
             except Exception as e:
@@ -175,13 +177,15 @@ class DeepEvalSynthesizer(BaseSynthesizer):
         try:
             # Generate synthetic data
             self.synthesizer.generate_goldens_from_scratch(num_goldens=num_scenarios)
-            
+
             if not self.synthesizer.synthetic_goldens:
                 print(f"   ⚠️  No synthetic examples generated")
                 return []
-                
-            print(f"   ✅ Generated {len(self.synthesizer.synthetic_goldens)} raw examples")
-            
+
+            print(
+                f"   ✅ Generated {len(self.synthesizer.synthetic_goldens)} raw examples"
+            )
+
         except Exception as e:
             print(f"   ❌ DeepEval generation failed: {e}")
             return []
@@ -190,7 +194,9 @@ class DeepEvalSynthesizer(BaseSynthesizer):
         examples = []
         for i, golden in enumerate(self.synthesizer.synthetic_goldens):
             try:
-                print(f"   🔄 Processing example {i+1}/{len(self.synthesizer.synthetic_goldens)}")
+                print(
+                    f"   🔄 Processing example {i+1}/{len(self.synthesizer.synthetic_goldens)}"
+                )
 
                 # Prepare input data
                 input_data = {"messages": [{"role": "user", "content": golden.input}]}
@@ -245,18 +251,18 @@ class DeepEvalSynthesizer(BaseSynthesizer):
                         "generation_context": {
                             "workflow_enhanced": workflow_context is not None,
                             "task_enhanced": task_description is not None,
-                            "scenario_enhanced": scenario is not None
-                        }
+                            "scenario_enhanced": scenario is not None,
+                        },
                     },
                 )
                 examples.append(example)
-                
+
             except Exception as e:
                 print(f"   ⚠️  Failed to process example {i+1}: {e}")
                 continue
 
         print(f"📊 Generated {len(examples)} synthetic examples")
-        
+
         if len(examples) == 0:
             print(f"   ❌ No valid examples generated")
             return []
