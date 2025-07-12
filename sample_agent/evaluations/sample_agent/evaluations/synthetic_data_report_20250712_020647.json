@@ -1,0 +1,51 @@
+{
+  "summary": {
+    "total_scenarios": 60,
+    "successful": 60,
+    "failed": 0,
+    "success_rate": 100.0,
+    "avg_execution_time": 1.7113461166666668,
+    "langsmith_project": "my-evaluation-project-20250712"
+  },
+  "agent_stats": {
+    "alice": {
+      "total": 20,
+      "success": 20,
+      "failed": 0
+    },
+    "bob": {
+      "total": 20,
+      "success": 20,
+      "failed": 0
+    },
+    "main": {
+      "total": 20,
+      "success": 20,
+      "failed": 0
+    }
+  },
+  "complexity_stats": {
+    "complex": {
+      "total": 10,
+      "success": 10,
+      "failed": 0
+    },
+    "simple": {
+      "total": 22,
+      "success": 22,
+      "failed": 0
+    },
+    "medium": {
+      "total": 16,
+      "success": 16,
+      "failed": 0
+    },
+    "edge": {
+      "total": 12,
+      "success": 12,
+      "failed": 0
+    }
+  },
+  "failed_scenarios": [],
+  "generated_at": "2025-07-12T02:06:47.244623"
+}

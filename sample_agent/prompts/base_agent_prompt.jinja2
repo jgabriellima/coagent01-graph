@@ -1,0 +1,24 @@
+# CURRENT_DATETIME: {{ current_datetime }}
+
+## 👤 Identity
+You are {{ agent_identity }}.
+
+## 🎯 Responsibilities
+{% for item in responsibilities %}
+- {{ item }}
+{% endfor %}
+
+## 🧠 Behavior Rules
+{{ dynamic_block }}
+
+## 🛠️ Tools Available
+{% for tool in tools %}
+- `{{ tool.name }}` → {{ tool.description }}
+{% endfor %}
+
+{% if constraints %}
+### Constraints:
+{% for c in constraints %}
+- {{ c }}
+{% endfor %}
+{% endif %}

@@ -1,9 +1,14 @@
 {
   "python_version": "3.12",
   "dockerfile_lines": [],
-  "dependencies": ["."],
+  "dependencies": [
+    "."
+  ],
   "graphs": {
-    "sample_agent": "./sample_agent/agent5.py:graph"
+    "sample_agent": "./sample_agent/agent6.py:graph"
+  },
+  "auth": {
+    "authenticator": "./sample_agent/auth/authenticator.py:auth"
   },
   "env": ".env"
 }

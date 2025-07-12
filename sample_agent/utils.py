@@ -1,15 +1,15 @@
 from langchain_core.tools import tool
 from langgraph.types import Command
-from langchain_core.messages import ToolMessage, AIMessage, HumanMessage
+from langchain_core.messages import ToolMessage, HumanMessage
 from typing import Annotated
-from langgraph_swarm import create_handoff_tool
 from langgraph_swarm.handoff import (
     _normalize_agent_name,
-    WHITESPACE_RE,
     METADATA_KEY_HANDOFF_DESTINATION,
 )
 from langgraph.prebuilt import InjectedState
 from langchain_core.tools import InjectedToolCallId
+from langgraph.graph import StateGraph
+import os
 
 
 def create_handoff_tool_with_state_propagation(
@@ -76,7 +76,6 @@ def create_handoff_tool_with_state_propagation(
     return handoff_to_agent_with_state
 
 
-
 def create_handoff_tool_with_task(
     *,
     name: str | None = None,
@@ -95,27 +94,28 @@ def create_handoff_tool_with_task(
     if description is None:
         description = f"Ask agent '{agent_name}' for help"
 
-    @tool(description=description)
+    @tool(name, description=description)
     def handoff_to_agent_with_task(
         state: Annotated[dict, InjectedState],
+        task_message: str,  # this is required at tool invocation
         tool_call_id: Annotated[str, InjectedToolCallId],
-        task_message: str  # this is required at tool invocation
     ):
         # Only the task message is passed forward in messages
-        messages = [HumanMessage(content=task_message)]
-
         update = {
-            "messages": messages,
+            "messages": [HumanMessage(content=task_message)],
             "active_agent": agent_name,
         }
 
         if propagate_keys:
             update.update({key: state[key] for key in propagate_keys if key in state})
         else:
-            update.update({
-                k: v for k, v in state.items()
-                if k not in ["messages", "active_agent"]
-            })
+            update.update(
+                {
+                    k: v
+                    for k, v in state.items()
+                    if k not in ["messages", "active_agent"]
+                }
+            )
 
         return Command(
             goto=agent_name,
@@ -123,9 +123,22 @@ def create_handoff_tool_with_task(
             update=update,
         )
 
-    # Used by LangGraph to route tools to their destinations
-    handoff_to_agent_with_task.metadata = {
-        "handoff_to_agent": agent_name
-    }
+    handoff_to_agent_with_task.metadata = {METADATA_KEY_HANDOFF_DESTINATION: agent_name}
 
     return handoff_to_agent_with_task
+
+
+def compile_workflow(workflow: StateGraph):
+    """Compila o workflow com MemoryCheckpointer para inspeção de estado"""
+    is_langgraph_api = (
+        os.environ.get("LANGGRAPH_API", "false").lower() == "true"
+        or os.environ.get("LANGGRAPH_API_DIR") is not None
+    )
+
+    if is_langgraph_api:
+        return workflow.compile()
+    else:
+        from langgraph.checkpoint.memory import MemorySaver
+
+        memory = MemorySaver()
+        return workflow.compile(checkpointer=memory)

@@ -1,0 +1,71 @@
+{
+  "summary": {
+    "total_scenarios": 12,
+    "successful_scenarios": 12,
+    "failed_scenarios": 0,
+    "overall_success_rate": 100.0,
+    "total_execution_time": 32.340067,
+    "avg_execution_time": 2.6950055833333333
+  },
+  "stats_by_agent": {
+    "alice": {
+      "total": 3,
+      "successful": 3,
+      "failed": 0,
+      "avg_execution_time": 3.078794666666667,
+      "handoffs_detected": 0,
+      "success_rate": 100.0
+    },
+    "bob": {
+      "total": 3,
+      "successful": 3,
+      "failed": 0,
+      "avg_execution_time": 2.221128333333333,
+      "handoffs_detected": 0,
+      "success_rate": 100.0
+    },
+    "main": {
+      "total": 3,
+      "successful": 3,
+      "failed": 0,
+      "avg_execution_time": 2.096672,
+      "handoffs_detected": 0,
+      "success_rate": 100.0
+    },
+    "swarm": {
+      "total": 3,
+      "successful": 3,
+      "failed": 0,
+      "avg_execution_time": 3.3834273333333336,
+      "handoffs_detected": 0,
+      "success_rate": 100.0
+    }
+  },
+  "stats_by_complexity": {
+    "medium": {
+      "total": 12,
+      "successful": 12,
+      "failed": 0,
+      "avg_execution_time": 2.6950055833333333,
+      "success_rate": 100.0
+    }
+  },
+  "stats_by_generation_method": {
+    "static": {
+      "total": 12,
+      "successful": 12,
+      "failed": 0,
+      "success_rate": 100.0
+    }
+  },
+  "langsmith_project": "quick-test",
+  "configuration": {
+    "model_name": "openai:gpt-4o-mini",
+    "temperature": 0.7,
+    "num_scenarios_per_agent": 3,
+    "include_swarm_scenarios": true,
+    "scenario_generation_mode": "static"
+  },
+  "failed_scenarios": [],
+  "generation_timestamp": "2025-07-12T02:34:31.872291"
+}

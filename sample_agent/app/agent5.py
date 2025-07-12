@@ -23,9 +23,8 @@ from langgraph_swarm import (
 )
 from sample_agent.utils import (
     create_handoff_tool_with_state_propagation,
-    create_handoff_tool_with_task
+    create_handoff_tool_with_task,
 )
-
 
 model = init_chat_model("openai:gpt-4o-mini", temperature=0)
 model_groq = model  # init_chat_model("groq:llama-3.1-8b-instant", temperature=0)
@@ -77,29 +76,14 @@ def get_weather(location: str, tool_call_id: Annotated[str, InjectedToolCallId])
 
 
 def calculate_math(expression: str, tool_call_id: Annotated[str, InjectedToolCallId]):
-    """
-    Calculate a simple math expression.
-    Example: "2 + 3" or "10 * 5"
-    """
-    print(f"Calculating math for {expression}")
+    """Calculate a math expression using Python's eval."""
     try:
-        if "+" in expression:
-            parts = expression.split("+")
-            result = sum(float(part.strip()) for part in parts)
-        elif "*" in expression:
-            parts = expression.split("*")
-            result = 1
-            for part in parts:
-                result *= float(part.strip())
-        elif "-" in expression:
-            parts = expression.split("-")
-            result = float(parts[0].strip()) - float(parts[1].strip())
-        elif "/" in expression:
-            parts = expression.split("/")
-            result = float(parts[0].strip()) / float(parts[1].strip())
-        else:
-            result = float(expression.strip())
-
+        # Sanitize for safety (only allow math operations)
+        allowed_chars = set('0123456789+-*/().,eE ')
+        if not set(expression).issubset(allowed_chars):
+            raise ValueError("Invalid characters in expression")
+        
+        result = eval(expression)
         return Command(
             update={
                 "math_expression": expression,
@@ -112,8 +96,8 @@ def calculate_math(expression: str, tool_call_id: Annotated[str, InjectedToolCal
                 ],
             }
         )
-    except:
-        return f"Could not calculate {expression}. Please use format like '2 + 3' or '10 * 5'"
+    except Exception as e:
+        return f"Could not calculate {expression}. Error: {e}"
 
 
 def pre_hook_supervisor_node(state, config: RunnableConfig):
@@ -220,6 +204,7 @@ def create_multi_agent_system_swarm_mode():
         prompt=MAIN_AGENT_PROMPT,
         name="main_agent",
         state_schema=FullState,
+        pre_model_hook=pre_hook_supervisor_node,
     )
 
     # Create Alice - Math Specialist
@@ -300,8 +285,6 @@ def create_multi_agent_system_swarm_mode():
         )
         .add_node(alice, destinations=("main_agent", "Bob"))
         .add_node(bob, destinations=("main_agent", "Alice"))
-        .add_node("cleanup_messages", strip_tool_messages_node)
-        .add_edge("cleanup_messages", "main_agent")
     )
     # workflow = workflow.set_finish_point("cleanup_messages")
     # Add the router that enables tracking of the last active agent

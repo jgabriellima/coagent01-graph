@@ -1,0 +1,133 @@
+{
+  "pipeline_summary": {
+    "project_name": "quick-test-pipeline",
+    "executed_at": "2025-07-12T02:39:03.013966",
+    "configuration": {
+      "model": "openai:gpt-4o-mini",
+      "temperature": 0.7,
+      "scenarios_per_agent": 3,
+      "evaluator_profile": "minimal",
+      "evaluation_model": "openai:gpt-4o"
+    },
+    "overall_success_rate": 0.0,
+    "total_avg_time": 12.150697583333335
+  },
+  "data_generation": {
+    "total_scenarios": 12,
+    "successful_scenarios": 12,
+    "failed_scenarios": 0,
+    "overall_success_rate": 100.0,
+    "total_execution_time": 28.834759000000002,
+    "avg_execution_time": 2.4028965833333333
+  },
+  "evaluation_results": {
+    "project_name": "quick-test-pipeline",
+    "total_runs": 0,
+    "total_evaluations": 0,
+    "successful_evaluations": 0,
+    "failed_evaluations": 0,
+    "success_rate": 0,
+    "evaluators_executed": 0,
+    "avg_evaluation_time": 9.747801,
+    "avg_scores_by_evaluator": {},
+    "evaluator_counts": {},
+    "execution_timestamp": "2025-07-12T02:39:03.003818"
+  },
+  "detailed_results": {
+    "data_generation": {
+      "summary": {
+        "total_scenarios": 12,
+        "successful_scenarios": 12,
+        "failed_scenarios": 0,
+        "overall_success_rate": 100.0,
+        "total_execution_time": 28.834759000000002,
+        "avg_execution_time": 2.4028965833333333
+      },
+      "stats_by_agent": {
+        "alice": {
+          "total": 3,
+          "successful": 3,
+          "failed": 0,
+          "avg_execution_time": 2.909271333333333,
+          "handoffs_detected": 0,
+          "success_rate": 100.0
+        },
+        "bob": {
+          "total": 3,
+          "successful": 3,
+          "failed": 0,
+          "avg_execution_time": 2.369787,
+          "handoffs_detected": 0,
+          "success_rate": 100.0
+        },
+        "main": {
+          "total": 3,
+          "successful": 3,
+          "failed": 0,
+          "avg_execution_time": 0.9479186666666667,
+          "handoffs_detected": 0,
+          "success_rate": 100.0
+        },
+        "swarm": {
+          "total": 3,
+          "successful": 3,
+          "failed": 0,
+          "avg_execution_time": 3.3846093333333336,
+          "handoffs_detected": 0,
+          "success_rate": 100.0
+        }
+      },
+      "stats_by_complexity": {
+        "medium": {
+          "total": 12,
+          "successful": 12,
+          "failed": 0,
+          "avg_execution_time": 2.4028965833333333,
+          "success_rate": 100.0
+        }
+      },
+      "stats_by_generation_method": {
+        "llm": {
+          "total": 8,
+          "successful": 8,
+          "failed": 0,
+          "success_rate": 100.0
+        },
+        "static": {
+          "total": 4,
+          "successful": 4,
+          "failed": 0,
+          "success_rate": 100.0
+        }
+      },
+      "langsmith_project": "quick-test-pipeline",
+      "configuration": {
+        "model_name": "openai:gpt-4o-mini",
+        "temperature": 0.7,
+        "num_scenarios_per_agent": 3,
+        "include_swarm_scenarios": true,
+        "scenario_generation_mode": "hybrid"
+      },
+      "failed_scenarios": [],
+      "generation_timestamp": "2025-07-12T02:38:44.231727"
+    },
+    "evaluation": {
+      "summary": {
+        "project_name": "quick-test-pipeline",
+        "total_runs": 0,
+        "total_evaluations": 0,
+        "successful_evaluations": 0,
+        "failed_evaluations": 0,
+        "success_rate": 0,
+        "evaluators_executed": 0,
+        "avg_evaluation_time": 9.747801,
+        "avg_scores_by_evaluator": {},
+        "evaluator_counts": {},
+        "execution_timestamp": "2025-07-12T02:39:03.003818"
+      },
+      "detailed_results": [],
+      "failed_evaluations": [],
+      "generated_at": "2025-07-12T02:39:03.003888"
+    }
+  }
+}
