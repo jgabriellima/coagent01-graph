@@ -4,80 +4,140 @@
     "Main_Agent": {
       "name": "Main_Agent",
       "capabilities": [
-        "task_coordination",
-        "agent_routing",
-        "user_interaction",
-        "workflow_management"
+        "weather_services",
+        "mathematical_operations"
       ],
       "tools": [
-        "ask_user"
+        "ask_user",
+        "get_weather"
       ],
-      "prompt_info": "Main Agent, responsible for coordinating tasks and managing user interaction"
+      "prompt_info": null,
+      "raw_data": {
+        "type": "<class 'langgraph.pregel.read.PregelNode'>",
+        "attributes": {
+          "channels": "['messages', 'active_agent', 'temperature', 'location', 'weather', 'math_expression', 'math_result', 'thread_mode', 'task_type', 'constraints', 'is_last_step', 'remaining_steps']",
+          "triggers": "['branch:to:Main_Agent']",
+          "mapper": "None",
+          "writers": "list: <large_object>",
+          "bound": "<langgraph.graph.state.CompiledStateGraph object at 0x1508de420>",
+          "cache_policy": "None",
+          "retry_policy": "None",
+          "tags": "None",
+          "metadata": "None",
+          "subgraphs": "[<langgraph.graph.state.CompiledStateGraph object at 0x1508de420>]"
+        },
+        "methods": [
+          "ainvoke",
+          "astream",
+          "copy",
+          "invoke",
+          "stream"
+        ],
+        "nested_data": {}
+      }
     },
     "Alice": {
       "name": "Alice",
       "capabilities": [
-        "mathematical_calculations",
-        "numeric_operations",
-        "arithmetic_solving",
-        "expression_evaluation"
+        "weather_services",
+        "mathematical_operations"
       ],
       "tools": [
-        "calculate_math"
+        "ask_user",
+        "get_weather"
       ],
-      "prompt_info": "Alice, expert in mathematics and numeric calculations"
+      "prompt_info": null,
+      "raw_data": {
+        "type": "<class 'langgraph.pregel.read.PregelNode'>",
+        "attributes": {
+          "channels": "['messages', 'active_agent', 'temperature', 'location', 'weather', 'math_expression', 'math_result', 'thread_mode', 'task_type', 'constraints', 'is_last_step', 'remaining_steps']",
+          "triggers": "['branch:to:Alice']",
+          "mapper": "None",
+          "writers": "list: <large_object>",
+          "bound": "<langgraph.graph.state.CompiledStateGraph object at 0x1508df920>",
+          "cache_policy": "None",
+          "retry_policy": "None",
+          "tags": "None",
+          "metadata": "None",
+          "subgraphs": "[<langgraph.graph.state.CompiledStateGraph object at 0x1508df920>]"
+        },
+        "methods": [
+          "ainvoke",
+          "astream",
+          "copy",
+          "invoke",
+          "stream"
+        ],
+        "nested_data": {}
+      }
     },
     "Bob": {
       "name": "Bob",
       "capabilities": [
-        "weather_reporting",
-        "location_based_services",
-        "climate_information",
-        "pirate_communication"
+        "weather_services",
+        "mathematical_operations"
       ],
       "tools": [
-        "get_weather",
-        "ask_user"
+        "ask_user",
+        "get_weather"
       ],
-      "prompt_info": "Bob, the pirate weather specialist"
+      "prompt_info": null,
+      "raw_data": {
+        "type": "<class 'langgraph.pregel.read.PregelNode'>",
+        "attributes": {
+          "channels": "['messages', 'active_agent', 'temperature', 'location', 'weather', 'math_expression', 'math_result', 'thread_mode', 'task_type', 'constraints', 'is_last_step', 'remaining_steps']",
+          "triggers": "['branch:to:Bob']",
+          "mapper": "None",
+          "writers": "list: <large_object>",
+          "bound": "<langgraph.graph.state.CompiledStateGraph object at 0x1508de1e0>",
+          "cache_policy": "None",
+          "retry_policy": "None",
+          "tags": "None",
+          "metadata": "None",
+          "subgraphs": "[<langgraph.graph.state.CompiledStateGraph object at 0x1508de1e0>]"
+        },
+        "methods": [
+          "ainvoke",
+          "astream",
+          "copy",
+          "invoke",
+          "stream"
+        ],
+        "nested_data": {}
+      }
     }
   },
   "capabilities": [
-    "task_coordination",
-    "agent_routing",
-    "user_interaction",
-    "workflow_management",
-    "mathematical_calculations",
-    "numeric_operations",
-    "arithmetic_solving",
-    "expression_evaluation",
-    "weather_reporting",
-    "location_based_services",
-    "climate_information",
-    "pirate_communication"
+    "weather_services",
+    "mathematical_operations",
+    "weather_services",
+    "mathematical_operations",
+    "weather_services",
+    "mathematical_operations"
   ],
   "tools": [
     "ask_user",
-    "calculate_math",
     "get_weather",
-    "ask_user"
+    "ask_user",
+    "get_weather",
+    "ask_user",
+    "get_weather"
   ],
-  "workflow_description": "Multi-agent system with 3 agents: Main_Agent (task_coordination, agent_routing, user_interaction, workflow_management), Alice (mathematical_calculations, numeric_operations, arithmetic_solving, expression_evaluation), Bob (weather_reporting, location_based_services, climate_information, pirate_communication). System capabilities include: climate_information, numeric_operations, task_coordination, location_based_services, workflow_management, weather_reporting, user_interaction, expression_evaluation, pirate_communication, agent_routing, arithmetic_solving, mathematical_calculations",
+  "workflow_description": "Multi-agent workflow system with 3 specialized agents: Main_Agent (weather_services, mathematical_operations). Alice (weather_services, mathematical_operations). Bob (weather_services, mathematical_operations). Core system capabilities: weather_services, mathematical_operations",
   "node_count": 4,
   "detailed_agents": {
     "Main_Agent": {
       "name": "Main_Agent",
       "capabilities": [
-        "task_coordination",
-        "agent_routing",
-        "user_interaction",
-        "workflow_management"
+        "weather_services",
+        "mathematical_operations"
       ],
       "tools": [
-        "ask_user"
+        "ask_user",
+        "get_weather"
       ],
-      "prompt_info": "Main Agent, responsible for coordinating tasks and managing user interaction",
-      "role_description": "Task coordinator and orchestrator",
+      "prompt_info": null,
+      "role_description": "Mathematical computation specialist",
       "interaction_patterns": [
         "Receives initial user requests",
         "Delegates tasks to specialized agents",
@@ -88,15 +148,14 @@
     "Alice": {
       "name": "Alice",
       "capabilities": [
-        "mathematical_calculations",
-        "numeric_operations",
-        "arithmetic_solving",
-        "expression_evaluation"
+        "weather_services",
+        "mathematical_operations"
       ],
       "tools": [
-        "calculate_math"
+        "ask_user",
+        "get_weather"
       ],
-      "prompt_info": "Alice, expert in mathematics and numeric calculations",
+      "prompt_info": null,
       "role_description": "Mathematical computation specialist",
       "interaction_patterns": [
         "Collaborates with 2 other agents"
@@ -105,17 +164,15 @@
     "Bob": {
       "name": "Bob",
       "capabilities": [
-        "weather_reporting",
-        "location_based_services",
-        "climate_information",
-        "pirate_communication"
+        "weather_services",
+        "mathematical_operations"
       ],
       "tools": [
-        "get_weather",
-        "ask_user"
+        "ask_user",
+        "get_weather"
       ],
-      "prompt_info": "Bob, the pirate weather specialist",
-      "role_description": "Weather information provider",
+      "prompt_info": null,
+      "role_description": "Mathematical computation specialist",
       "interaction_patterns": [
         "Collaborates with 2 other agents"
       ]
@@ -123,8 +180,8 @@
   },
   "workflow_insights": {
     "agent_count": 3,
-    "total_capabilities": 12,
-    "total_tools": 4,
+    "total_capabilities": 6,
+    "total_tools": 6,
     "workflow_type": "Small multi-agent system",
     "complexity_level": "High complexity",
     "collaboration_pattern": "Hub-and-spoke (coordinator pattern)"
@@ -135,12 +192,12 @@
       "assessment": "Medium"
     },
     "tool_complexity": {
-      "count": 4,
-      "assessment": "Low"
+      "count": 6,
+      "assessment": "Medium"
     },
     "capability_complexity": {
-      "count": 12,
-      "assessment": "Medium"
+      "count": 6,
+      "assessment": "Low"
     },
     "overall_complexity": "High complexity"
   },
@@ -150,9 +207,11 @@
       "Test Alice individual capabilities",
       "Test Bob individual capabilities",
       "Test ask_user tool functionality",
-      "Test calculate_math tool functionality",
       "Test get_weather tool functionality",
-      "Test ask_user tool functionality"
+      "Test ask_user tool functionality",
+      "Test get_weather tool functionality",
+      "Test ask_user tool functionality",
+      "Test get_weather tool functionality"
     ],
     "integration_tests": [
       "Test agent handoff mechanisms",

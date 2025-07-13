@@ -128,7 +128,7 @@ def create_handoff_tool_with_task(
     return handoff_to_agent_with_task
 
 
-def compile_workflow(workflow: StateGraph):
+def compile_workflow(workflow: StateGraph, checkpointer=None):
     """Compila o workflow com MemoryCheckpointer para inspeção de estado"""
     is_langgraph_api = (
         os.environ.get("LANGGRAPH_API", "false").lower() == "true"
@@ -138,7 +138,11 @@ def compile_workflow(workflow: StateGraph):
     if is_langgraph_api:
         return workflow.compile()
     else:
-        from langgraph.checkpoint.memory import MemorySaver
+        memory = None
+        if checkpointer is None:
+            from langgraph.checkpoint.memory import MemorySaver
 
-        memory = MemorySaver()
+            memory = MemorySaver()
+            checkpointer = memory
+
         return workflow.compile(checkpointer=memory)

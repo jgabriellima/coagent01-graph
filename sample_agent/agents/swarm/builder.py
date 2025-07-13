@@ -21,6 +21,7 @@ class AgentBuilder:
         prompt_template_path: str,
         dynamic_block_template_path: str | None = None,
         constraints: list[str] | None = None,
+        prompt_template: str | None = None,
     ):
         self.name = name
         self.model = model
@@ -32,6 +33,7 @@ class AgentBuilder:
         self.prompt_template_path = prompt_template_path
         self.dynamic_block_template_path = dynamic_block_template_path
         self.constraints = constraints
+        self.prompt_template = prompt_template
 
     def _extract_tool_infos(self) -> list[dict]:
         """Extract tool metadata into a uniform list for template rendering."""
@@ -48,8 +50,11 @@ class AgentBuilder:
 
     def _render_prompt(self, state: dict) -> str:
         """Renders the full prompt using Jinja2 and the provided state."""
+        if self.prompt_template:
+            return self.prompt_template
+
         with open(self.prompt_template_path, "r") as f:
-            base_template = Template(f.read())
+            self.prompt_template = Template(f.read())
 
         dynamic_block = ""
         if self.dynamic_block_template_path:
@@ -57,7 +62,7 @@ class AgentBuilder:
                 dynamic_template = Template(f.read())
                 dynamic_block = dynamic_template.render(**state)
 
-        return base_template.render(
+        self.prompt_template = self.prompt_template.render(
             current_datetime=datetime.utcnow().isoformat(),
             agent_identity=self.agent_identity,
             responsibilities=self.responsibilities,
@@ -65,6 +70,9 @@ class AgentBuilder:
             tools=self._extract_tool_infos(),
             dynamic_block=dynamic_block,
         )
+
+        print(f"prompt_template: {self.prompt_template}")
+        return self.prompt_template
 
     def _pre_model_hook(self) -> RunnableLambda:
         """Injects dynamically generated prompt as llm_input_messages."""
