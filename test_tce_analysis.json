@@ -1,0 +1,23 @@
+{
+  "total_nodes": 3,
+  "nodes": [
+    {
+      "name": "TCE_Main_Agent",
+      "node_type": "node",
+      "tools": [],
+      "prompt": null
+    },
+    {
+      "name": "TCE_RAG_Agent",
+      "node_type": "node",
+      "tools": [],
+      "prompt": null
+    },
+    {
+      "name": "TCE_Search_Agent",
+      "node_type": "node",
+      "tools": [],
+      "prompt": null
+    }
+  ]
+}

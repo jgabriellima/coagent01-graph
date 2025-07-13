@@ -3,20 +3,14 @@
 Workflow Analyzer
 ================
 
-Simple and objective workflow analysis utility using proper LangGraph API methods.
-Uses get_graph() and get_subgraphs() for structured workflow inspection.
+Simple workflow analysis utility to extract node names, tools, and agent prompts from LangGraph workflows.
 """
 
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from dataclasses import dataclass, asdict
-
-from langchain_core.runnables import RunnableConfig
+from dataclasses import dataclass
 from pydantic import BaseModel, Field
-from openai import OpenAI
-from langgraph.graph.state import CompiledStateGraph
-
 
 
 @dataclass
@@ -24,219 +18,350 @@ class WorkflowAnalysisConfig:
     """Configuration for workflow analysis."""
     save_to_file: bool = True
     output_file: Optional[Path] = None
-    llm_model: str = "gpt-4o"
-    llm_temperature: float = 0.1
 
 
 class ToolInfo(BaseModel):
     """Information about a tool available to an agent."""
     name: str = Field(description="Tool name")
     description: str = Field(description="Tool description")
-    is_handoff: bool = Field(description="Whether this tool is a handoff to another agent")
 
 
-class AgentBlueprint(BaseModel):
-    """Simplified agent blueprint focused on core workflow elements."""
-    role: str = Field(description="Agent role or function")
-    role_description: str = Field(description="Detailed description of agent's role")
-    tools: List[ToolInfo] = Field(description="Tools available to this agent")
-    handoffs: List[str] = Field(description="Other agents this agent can handoff to")
+class NodeInfo(BaseModel):
+    """Information about a workflow node."""
+    name: str = Field(description="Node name")
+    node_type: str = Field(description="Type of node")
+    tools: List[ToolInfo] = Field(description="Tools available to this node")
+    prompt: Optional[str] = Field(description="Agent prompt if it's a react agent")
 
 
-class WorkflowBlueprint(BaseModel):
-    """Technical blueprint of a multi-agent workflow."""
-    workflow_type: str = Field(description="Type of workflow (e.g., 'Multi-Agent Swarm', 'Sequential', 'Hierarchical')")
-    description: str = Field(description="Description of the workflow")
-    agents: Dict[str, AgentBlueprint] = Field(description="Dictionary of agent name to agent blueprint")
-    agent_count: int = Field(description="Total number of agents")
-    total_tools: int = Field(description="Total number of tools across all agents")
+class WorkflowAnalysis(BaseModel):
+    """Analysis result of a workflow."""
+    total_nodes: int = Field(description="Total number of nodes")
+    nodes: List[NodeInfo] = Field(description="List of nodes with their information")
 
 
 class WorkflowAnalyzer:
     """
-    Objective workflow analyzer using proper LangGraph API methods.
-    
-    Uses get_graph() and get_subgraphs() for structured workflow inspection.
+    Simple workflow analyzer to extract essential information from LangGraph workflows.
     """
     
     def __init__(self, config: WorkflowAnalysisConfig = None):
         """Initialize the workflow analyzer."""
         self.config = config or WorkflowAnalysisConfig()
-        self.client = OpenAI()
     
-    def analyze_workflow(self, workflow) -> WorkflowBlueprint:
+    def analyze_workflow(self, workflow) -> WorkflowAnalysis:
         """
-        Analyze a compiled LangGraph workflow and generate a technical blueprint.
+        Analyze a compiled LangGraph workflow and extract node information.
         
         Args:
             workflow: Compiled LangGraph workflow
             
         Returns:
-            WorkflowBlueprint: Technical blueprint of the workflow
+            WorkflowAnalysis: Analysis result with node information
         """
-        # Use proper LangGraph API methods
-        graph: CompiledStateGraph = workflow.get_graph()
+        # Get the graph from the workflow
+        graph = workflow.get_graph()
         
-        # Extract basic graph structure
-        graph_data = self._extract_graph_data(graph)
+        # Extract node information
+        nodes = self._extract_nodes_info(graph, workflow)
         
-        # Check for subgraphs
-        subgraph_data = self._extract_subgraph_data(workflow)
-        
-        # Generate blueprint using LLM
-        blueprint = self._generate_blueprint_with_llm(graph_data, subgraph_data)
+        # Create analysis result
+        analysis = WorkflowAnalysis(
+            total_nodes=len(nodes),
+            nodes=nodes
+        )
         
         # Save to file if configured
         if self.config.save_to_file:
-            self._save_blueprint(blueprint)
+            self._save_analysis(analysis)
         
-        return blueprint
+        return analysis
     
-    def _extract_graph_data(self, graph) -> Dict[str, Any]:
-        """Extract graph data using proper LangGraph API."""
-        # Get graph structure
-        nodes = list(graph.nodes.keys()) if hasattr(graph, 'nodes') else []
-        edges = list(graph.edges) if hasattr(graph, 'edges') else []
+    def _extract_nodes_info(self, graph, workflow) -> List[NodeInfo]:
+        """Extract information from all nodes in the graph."""
+        nodes_info = []
         
-        # Try to get additional graph information
-        graph_info = {
-            "nodes": nodes,
-            "edges": edges,
-            "node_count": len(nodes),
-            "edge_count": len(edges)
-        }
-        
-        # Try to get node data if available
-        if hasattr(graph, 'nodes'):
-            node_data = {}
-            for node_id in nodes:
-                node_info = graph.nodes.get(node_id, {})
-                node_data[node_id] = {
-                    "id": node_id,
-                    "data": str(node_info) if node_info else "No data available"
-                }
-            graph_info["node_data"] = node_data
-        
-        return graph_info
-    
-    def _extract_subgraph_data(self, workflow) -> Dict[str, Any]:
-        """Extract subgraph data using get_subgraphs()."""
-        subgraph_data = {"has_subgraphs": False, "subgraphs": []}
-        
-        try:
-            # Use get_subgraphs() method
-            subgraphs = workflow.get_subgraphs()
-            if subgraphs:
-                subgraph_data["has_subgraphs"] = True
-                subgraph_data["subgraphs"] = [
-                    {"name": name, "type": str(type(subgraph))}
-                    for name, subgraph in subgraphs.items()
-                ]
-        except Exception as e:
-            subgraph_data["error"] = str(e)
-        
-        return subgraph_data
-    
-    def _generate_blueprint_with_llm(self, graph_data: Dict[str, Any], subgraph_data: Dict[str, Any]) -> WorkflowBlueprint:
-        """Generate workflow blueprint using LLM analysis."""
-        
-        # Prepare context for LLM
-        context = {
-            "graph_structure": graph_data,
-            "subgraph_info": subgraph_data
-        }
-        
-        prompt = f"""
-        Analyze the following LangGraph workflow structure and generate a technical blueprint.
-        
-        Graph Structure:
-        {json.dumps(context, indent=2)}
-        
-        Based on this information, create a technical blueprint that identifies:
-        1. The workflow type (e.g., 'Multi-Agent Swarm', 'Sequential', 'Hierarchical')
-        2. A description of the workflow
-        3. Each agent's role and role description
-        4. Tools available to each agent
-        5. Handoff relationships between agents
-        
-        Focus on extracting meaningful information from the node names and structure.
-        For tools, infer based on common patterns (e.g., nodes ending with '_tool', 'search', 'execute').
-        For handoffs, identify transitions between different agent nodes.
-        
-        Return a structured analysis focusing on the workflow's technical architecture.
-        """
-        
-        try:
-            response = self.client.beta.chat.completions.parse(
-                model=self.config.llm_model,
-                messages=[
-                    {"role": "system", "content": "You are a technical analyst specializing in multi-agent workflow architecture."},
-                    {"role": "user", "content": prompt}
-                ],
-                response_format=WorkflowBlueprint,
-                temperature=self.config.llm_temperature
-            )
+        # Get all nodes from the graph
+        for node_id in graph.nodes:
+            # Skip special nodes
+            if node_id in ["__start__", "__end__"]:
+                continue
             
-            return response.parsed
-            
-        except Exception as e:
-            # Fallback blueprint if LLM fails
-            return self._create_fallback_blueprint(graph_data)
+            node_info = self._analyze_node(node_id, graph, workflow)
+            nodes_info.append(node_info)
+        
+        return nodes_info
     
-    def _create_fallback_blueprint(self, graph_data: Dict[str, Any]) -> WorkflowBlueprint:
-        """Create a basic fallback blueprint if LLM analysis fails."""
+    def _analyze_node(self, node_id: str, graph, workflow) -> NodeInfo:
+        """Analyze a single node to extract its information."""
+        # Get the node object from the graph
+        node_obj = graph.nodes.get(node_id)
         
-        nodes = graph_data.get("nodes", [])
-        
-        # Create basic agents from nodes
-        agents = {}
-        for node in nodes:
-            if node not in ["__start__", "__end__"]:
-                agents[node] = AgentBlueprint(
-                    role=node.replace("_", " ").title(),
-                    role_description=f"Agent responsible for {node} functionality",
-                    tools=[],
-                    handoffs=[]
-                )
-        
-        return WorkflowBlueprint(
-            workflow_type="Multi-Agent Workflow",
-            description="LangGraph workflow with multiple agents",
-            agents=agents,
-            agent_count=len(agents),
-            total_tools=0
+        # Extract basic node information
+        node_info = NodeInfo(
+            name=node_id,
+            node_type=self._get_node_type(node_obj),
+            tools=[],
+            prompt=None
         )
+        
+        # Try to extract tools and prompt from the node
+        try:
+            # Get the actual runnable data from the node
+            runnable_data = getattr(node_obj, 'data', None)
+            if runnable_data:
+                # Check if this is a CompiledStateGraph (subgraph)
+                if hasattr(runnable_data, 'nodes') and hasattr(runnable_data, 'builder'):
+                    # This is a subgraph - extract tools and prompts from its nodes
+                    tools, prompt = self._extract_from_subgraph(runnable_data)
+                    node_info.tools = tools
+                    node_info.prompt = prompt
+                else:
+                    # This is a regular runnable - extract directly
+                    tools = self._extract_tools_from_node(runnable_data)
+                    node_info.tools = tools
+                    
+                    prompt = self._extract_prompt_from_node(runnable_data)
+                    node_info.prompt = prompt
+        
+        except Exception as e:
+            # If extraction fails, log and continue
+            print(f"Warning: Could not extract details from node {node_id}: {e}")
+        
+        return node_info
     
-    def _save_blueprint(self, blueprint: WorkflowBlueprint) -> None:
-        """Save blueprint to file."""
-        output_file = self.config.output_file or Path("workflow_blueprint.json")
+    def _extract_from_subgraph(self, subgraph) -> tuple[List[ToolInfo], Optional[str]]:
+        """Extract tools and prompts from a subgraph."""
+        tools = []
+        prompt = None
+        
+        try:
+            # Get the builder to access the original graph structure
+            builder = getattr(subgraph, 'builder', None)
+            if builder:
+                # Access the nodes dict from the builder
+                nodes_dict = getattr(builder, 'nodes', {})
+                
+                for node_name, node_spec in nodes_dict.items():
+                    # Get the runnable from the StateNodeSpec
+                    runnable = getattr(node_spec, 'runnable', None)
+                    if runnable:
+                        # Extract tools from the runnable
+                        node_tools = self._extract_tools_from_runnable(runnable)
+                        tools.extend(node_tools)
+                        
+                        # Extract prompt from the runnable (keep the first one found)
+                        if not prompt:
+                            node_prompt = self._extract_prompt_from_runnable(runnable)
+                            if node_prompt:
+                                prompt = node_prompt
+        
+        except Exception as e:
+            print(f"Warning: Could not extract from subgraph: {e}")
+        
+        return tools, prompt
+    
+    def _extract_tools_from_runnable(self, runnable) -> List[ToolInfo]:
+        """Extract tools from a runnable object."""
+        tools = []
+        
+        try:
+            # Check if it's a ToolNode (has tools_by_name)
+            if hasattr(runnable, 'tools_by_name'):
+                tools_dict = runnable.tools_by_name
+                for tool_name, tool_obj in tools_dict.items():
+                    tool_info = ToolInfo(
+                        name=tool_name,
+                        description=getattr(tool_obj, 'description', 'No description available')
+                    )
+                    tools.append(tool_info)
+            
+            # Check if the runnable has tools attribute
+            elif hasattr(runnable, 'tools') and runnable.tools:
+                for tool in runnable.tools:
+                    tool_info = ToolInfo(
+                        name=getattr(tool, 'name', str(tool)),
+                        description=getattr(tool, 'description', 'No description available')
+                    )
+                    tools.append(tool_info)
+            
+            # Check if it's a bind_tools result (common pattern)
+            elif hasattr(runnable, 'bound') and hasattr(runnable, 'kwargs'):
+                bound_tools = runnable.kwargs.get('tools', [])
+                for tool in bound_tools:
+                    tool_info = ToolInfo(
+                        name=getattr(tool, 'name', str(tool)),
+                        description=getattr(tool, 'description', 'No description available')
+                    )
+                    tools.append(tool_info)
+            
+            # Check if it's a sequence/chain with tools
+            elif hasattr(runnable, 'steps'):
+                for step in runnable.steps:
+                    if hasattr(step, 'tools') and step.tools:
+                        for tool in step.tools:
+                            tool_info = ToolInfo(
+                                name=getattr(tool, 'name', str(tool)),
+                                description=getattr(tool, 'description', 'No description available')
+                            )
+                            tools.append(tool_info)
+            
+            # Check for tools in runnable dict
+            elif hasattr(runnable, '__dict__'):
+                for attr_name, attr_value in runnable.__dict__.items():
+                    if 'tool' in attr_name.lower() and isinstance(attr_value, dict):
+                        # This might be a tools dictionary
+                        for tool_name, tool_obj in attr_value.items():
+                            if hasattr(tool_obj, 'name') or hasattr(tool_obj, '__name__'):
+                                tool_info = ToolInfo(
+                                    name=getattr(tool_obj, 'name', getattr(tool_obj, '__name__', str(tool_obj))),
+                                    description=getattr(tool_obj, 'description', 'No description available')
+                                )
+                                tools.append(tool_info)
+                    elif 'tool' in attr_name.lower() and hasattr(attr_value, '__iter__') and not isinstance(attr_value, str):
+                        try:
+                            for tool in attr_value:
+                                if hasattr(tool, 'name'):
+                                    tool_info = ToolInfo(
+                                        name=tool.name,
+                                        description=getattr(tool, 'description', 'No description available')
+                                    )
+                                    tools.append(tool_info)
+                        except:
+                            continue
+        
+        except Exception as e:
+            print(f"Warning: Could not extract tools from runnable: {e}")
+        
+        return tools
+    
+    def _extract_prompt_from_runnable(self, runnable) -> Optional[str]:
+        """Extract prompt from a runnable object."""
+        try:
+            # Check if it's a RunnableCallable with a func
+            if hasattr(runnable, 'func') and hasattr(runnable.func, '__name__'):
+                func_name = runnable.func.__name__
+                if 'agent' in func_name.lower():
+                    # This might be the agent function - try to get its docstring
+                    func_doc = getattr(runnable.func, '__doc__', None)
+                    if func_doc:
+                        return func_doc.strip()
+            
+            # Check common attributes where prompts might be stored
+            prompt_attrs = ['prompt', 'system_prompt', 'system_message', 'template']
+            
+            for attr in prompt_attrs:
+                if hasattr(runnable, attr):
+                    prompt_value = getattr(runnable, attr)
+                    if prompt_value:
+                        return str(prompt_value)
+            
+            # Check in nested structures
+            if hasattr(runnable, '__dict__'):
+                for attr_name, attr_value in runnable.__dict__.items():
+                    if 'prompt' in attr_name.lower() and attr_value:
+                        return str(attr_value)
+            
+            # Check if it's a composed runnable with prompt
+            if hasattr(runnable, 'first') and hasattr(runnable.first, 'template'):
+                return str(runnable.first.template)
+            
+            # Check if it's a sequence/chain with prompt
+            if hasattr(runnable, 'steps') and runnable.steps:
+                for step in runnable.steps:
+                    if hasattr(step, 'template'):
+                        return str(step.template)
+                    if hasattr(step, 'messages'):
+                        messages = []
+                        for msg in step.messages:
+                            if hasattr(msg, 'content'):
+                                messages.append(f"{msg.__class__.__name__}: {msg.content}")
+                            elif hasattr(msg, 'template'):
+                                messages.append(f"{msg.__class__.__name__}: {msg.template}")
+                        if messages:
+                            return "\n".join(messages)
+            
+            # Check for messages in case of ChatPromptTemplate
+            if hasattr(runnable, 'messages'):
+                messages = []
+                for msg in runnable.messages:
+                    if hasattr(msg, 'content'):
+                        messages.append(f"{msg.__class__.__name__}: {msg.content}")
+                    elif hasattr(msg, 'template'):
+                        messages.append(f"{msg.__class__.__name__}: {msg.template}")
+                if messages:
+                    return "\n".join(messages)
+        
+        except Exception as e:
+            print(f"Warning: Could not extract prompt from runnable: {e}")
+        
+        return None
+    
+    def _extract_tools_from_node(self, runnable_data) -> List[ToolInfo]:
+        """Extract tools from a runnable data object."""
+        # Use the new method for consistency
+        return self._extract_tools_from_runnable(runnable_data)
+    
+    def _extract_prompt_from_node(self, runnable_data) -> Optional[str]:
+        """Extract prompt from a runnable data object."""
+        # Use the new method for consistency
+        return self._extract_prompt_from_runnable(runnable_data)
+    
+    def _get_node_type(self, node_obj) -> str:
+        """Determine the type of a node based on its object."""
+        if not node_obj:
+            return "unknown"
+        
+        # Try to get the actual runnable data
+        runnable_data = getattr(node_obj, 'data', None)
+        if runnable_data:
+            data_type = str(type(runnable_data))
+            
+            # Look for common patterns in the type string
+            if 'CompiledStateGraph' in data_type:
+                return "subgraph"
+            elif 'Agent' in data_type or 'agent' in data_type:
+                return "agent"
+            elif 'Tool' in data_type or 'tool' in data_type:
+                return "tool"
+            elif 'Runnable' in data_type or 'runnable' in data_type:
+                return "runnable"
+            elif 'Executor' in data_type or 'executor' in data_type:
+                return "executor"
+        
+        # Fallback to node type
+        node_type = str(type(node_obj))
+        if 'Node' in node_type:
+            return "node"
+        
+        return "unknown"
+    
+    def _save_analysis(self, analysis: WorkflowAnalysis) -> None:
+        """Save analysis to file."""
+        output_file = self.config.output_file or Path("workflow_analysis.json")
         
         with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(blueprint.model_dump(), f, indent=2, ensure_ascii=False)
+            json.dump(analysis.model_dump(), f, indent=2, ensure_ascii=False)
         
-        print(f"📁 Blueprint saved to: {output_file}")
+        print(f"📁 Analysis saved to: {output_file}")
     
-    def print_blueprint(self, blueprint: WorkflowBlueprint) -> None:
-        """Print blueprint in a formatted way."""
-        print("🏗️  WORKFLOW BLUEPRINT")
+    def print_analysis(self, analysis: WorkflowAnalysis) -> None:
+        """Print analysis in a formatted way."""
+        print("🔍 WORKFLOW ANALYSIS")
         print("=" * 50)
-        print(f"Type: {blueprint.workflow_type}")
-        print(f"Description: {blueprint.description}")
-        print(f"Agents: {blueprint.agent_count}")
-        print(f"Total Tools: {blueprint.total_tools}")
+        print(f"Total Nodes: {analysis.total_nodes}")
         print()
         
-        for agent_name, agent in blueprint.agents.items():
-            print(f"🤖 Agent: {agent_name}")
-            print(f"   Role: {agent.role}")
-            print(f"   Description: {agent.role_description}")
-            print(f"   Tools: {len(agent.tools)}")
-            if agent.tools:
-                for tool in agent.tools:
-                    handoff_indicator = " (handoff)" if tool.is_handoff else ""
-                    print(f"     • {tool.name}{handoff_indicator}")
-            print(f"   Handoffs: {len(agent.handoffs)}")
-            if agent.handoffs:
-                for handoff in agent.handoffs:
-                    print(f"     → {handoff}")
+        for node in analysis.nodes:
+            print(f"📦 Node: {node.name}")
+            print(f"   Type: {node.node_type}")
+            print(f"   Tools: {len(node.tools)}")
+            
+            if node.tools:
+                for tool in node.tools:
+                    print(f"     🔧 {tool.name}: {tool.description}")
+            
+            if node.prompt:
+                print(f"   Prompt: {node.prompt[:100]}{'...' if len(node.prompt) > 100 else ''}")
+            
             print() 

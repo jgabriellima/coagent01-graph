@@ -1,0 +1,86 @@
+{
+  "total_nodes": 3,
+  "nodes": [
+    {
+      "name": "TCE_Main_Agent",
+      "node_type": "subgraph",
+      "tools": [
+        {
+          "name": "human_in_the_loop",
+          "description": "Strategic human intervention tool for critical decision points in the TCE-PA workflow.\n\nThis tool enables the system to escalate complex legal interpretations, ambiguous queries,\nor validation requests to human operators when automated processing is insufficient.\nEssential for maintaining accuracy in legal and regulatory contexts where human judgment\nis required for proper case handling and compliance validation.\n\nArgs:\n    question_to_user: Specific question requiring human input with proper context"
+        },
+        {
+          "name": "transfer_to_tce_rag_agent",
+          "description": "Use this to handoff to the RAG agent for legislation, resolutions, acts, and jurisprudence queries."
+        },
+        {
+          "name": "transfer_to_tce_search_agent",
+          "description": "Use this to handoff to the search agent for expediente, process, and web search queries."
+        }
+      ],
+      "prompt": null
+    },
+    {
+      "name": "TCE_RAG_Agent",
+      "node_type": "subgraph",
+      "tools": [
+        {
+          "name": "tce_documents_database_tool",
+          "description": "Access the TCE-PA knowledge base for legislation, resolutions, acts, and jurisprudence.\n\nArgs:\n    query: The search query\n    document_type: Type of document to search (\"legislacao\", \"acordao\", \"resolucao\", \"ato\", \"all\")"
+        },
+        {
+          "name": "document_ingestion_tool",
+          "description": "Ingest and process documents using chonkie chunking strategies.\n\nArgs:\n    document_content: The document content to process\n    document_type: Type of document\n    metadata: Document metadata including temporal information"
+        },
+        {
+          "name": "document_summarization_tool",
+          "description": "Generate summaries of TCE-PA documents.\n\nArgs:\n    document_content: The document content to summarize"
+        },
+        {
+          "name": "human_in_the_loop",
+          "description": "Strategic human intervention tool for critical decision points in the TCE-PA workflow.\n\nThis tool enables the system to escalate complex legal interpretations, ambiguous queries,\nor validation requests to human operators when automated processing is insufficient.\nEssential for maintaining accuracy in legal and regulatory contexts where human judgment\nis required for proper case handling and compliance validation.\n\nArgs:\n    question_to_user: Specific question requiring human input with proper context"
+        },
+        {
+          "name": "transfer_to_tce_main_agent",
+          "description": "Use this to handoff to the main TCE agent for coordination, user interaction, and general queries."
+        },
+        {
+          "name": "transfer_to_tce_search_agent",
+          "description": "Use this to handoff to the search agent for expediente, process, and web search queries."
+        }
+      ],
+      "prompt": null
+    },
+    {
+      "name": "TCE_Search_Agent",
+      "node_type": "subgraph",
+      "tools": [
+        {
+          "name": "etce_search_tool",
+          "description": "Search for expedientes in the eTCE (Electronic Process System) of TCE-PA.\n\nArgs:\n    expediente_number: The expediente number to search for\n    year: The year of the expediente (optional)"
+        },
+        {
+          "name": "etce_process_details_tool",
+          "description": "Get detailed information about a specific process in eTCE.\n\nArgs:\n    processo_number: The process number to get details for"
+        },
+        {
+          "name": "web_search_tool",
+          "description": "Search the web for current information and events related to TCE-PA.\n\nArgs:\n    query: The search query"
+        },
+        {
+          "name": "human_in_the_loop",
+          "description": "Strategic human intervention tool for critical decision points in the TCE-PA workflow.\n\nThis tool enables the system to escalate complex legal interpretations, ambiguous queries,\nor validation requests to human operators when automated processing is insufficient.\nEssential for maintaining accuracy in legal and regulatory contexts where human judgment\nis required for proper case handling and compliance validation.\n\nArgs:\n    question_to_user: Specific question requiring human input with proper context"
+        },
+        {
+          "name": "transfer_to_tce_main_agent",
+          "description": "Use this to handoff to the main TCE agent for coordination, user interaction, and general queries."
+        },
+        {
+          "name": "transfer_to_tce_rag_agent",
+          "description": "Use this to handoff to the RAG agent for legislation, resolutions, acts, and jurisprudence queries."
+        }
+      ],
+      "prompt": null
+    }
+  ]
+}

@@ -2,21 +2,21 @@
 Workflow Analysis Module
 =======================
 
-Simple and objective workflow analysis using proper LangGraph API methods.
+Simple workflow analysis to extract node names, tools, and agent prompts from LangGraph workflows.
 """
 
 from .workflow_analyzer import (
     WorkflowAnalyzer, 
     WorkflowAnalysisConfig, 
-    AgentBlueprint,
-    WorkflowBlueprint,
+    NodeInfo,
+    WorkflowAnalysis,
     ToolInfo
 )
 
 __all__ = [
     "WorkflowAnalyzer",
     "WorkflowAnalysisConfig", 
-    "AgentBlueprint",
-    "WorkflowBlueprint",
+    "NodeInfo",
+    "WorkflowAnalysis",
     "ToolInfo"
 ] 

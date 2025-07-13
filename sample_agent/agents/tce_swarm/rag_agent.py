@@ -1,5 +1,5 @@
-from typing import Callable
-from langgraph.prebuilt.chat_agent_executor import AgentStateWithStructuredResponse
+from typing import Callable, List
+from langgraph.prebuilt.chat_agent_executor import AgentState, AgentStateWithStructuredResponse
 from sample_agent.agents.swarm.builder import AgentBuilder
 from pydantic import BaseModel
 import os
@@ -50,7 +50,7 @@ class TCERagAgentState(AgentStateWithStructuredResponse):
     metadata: dict = {}
 
 
-class TCERagAgentOutput(BaseModel):
+class TCERagAgentOutput(AgentState):
     """Formato de saída estruturado do RAG Agent"""
     query: str
     query_type: str
@@ -58,6 +58,8 @@ class TCERagAgentOutput(BaseModel):
     rag_response: str
     sources: list[str] = []
     confidence: float = 0.0
+    
+    messages: List[str] = []
 
 
 def build_tce_rag_agent(model, handoff_tools: list[Callable] | None = None):
@@ -110,7 +112,7 @@ def build_tce_rag_agent(model, handoff_tools: list[Callable] | None = None):
             "Solicitar esclarecimentos quando consultas forem ambíguas"
         ],
         state_schema=TCERagAgentState,
-        response_format=TCERagAgentOutput,
+        # response_format=TCERagAgentOutput,
         prompt_template_path=prompt_template_path,
         dynamic_block_template_path=dynamic_block_template_path,
     )
