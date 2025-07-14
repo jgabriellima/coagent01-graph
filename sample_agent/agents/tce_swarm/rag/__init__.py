@@ -4,12 +4,13 @@ Implements complete RAG pipeline with document reading, chunking, and retrieval
 """
 
 from .utils import llm, mock_document_processing, mock_chunking, mock_vector_search
-from .graph import create_tce_rag_subgraph
+from .graph import create_tce_rag_subgraph, tce_rag_subgraph
 
 __all__ = [
     "llm",
     "mock_document_processing", 
     "mock_chunking",
     "mock_vector_search",
-    "create_tce_rag_subgraph"
+    "create_tce_rag_subgraph",
+    "tce_rag_subgraph"
 ] 

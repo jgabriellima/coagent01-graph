@@ -15,6 +15,80 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from sample_agent.agents.tce_swarm.graph import tce_swarm_graph, health_check
 from sample_agent.agents.tce_swarm.states import TCESwarmState
+from sample_agent.agents.tce_swarm.rag_agent import execute_rag_pipeline_tool
+
+
+def test_rag_pipeline_only():
+    """Test only the RAG pipeline without the full swarm system"""
+    
+    print("=" * 80)
+    print("🧪 TCE-PA RAG PIPELINE ISOLATED TEST")
+    print("=" * 80)
+    
+    test_queries = [
+        {
+            "query": "O teletrabalho pode ser estendido ou prorrogado no TCE-PA?",
+            "expected_type": "legislation"
+        },
+        {
+            "query": "Qual é o tema do Acórdão nº 192?",
+            "expected_type": "acordao"
+        },
+        {
+            "query": "Quais são os procedimentos para análise de contas?",
+            "expected_type": "legislation"
+        }
+    ]
+    
+    for i, test in enumerate(test_queries, 1):
+        print(f"\n🧪 {i}. TESTING RAG PIPELINE")
+        print("-" * 50)
+        print(f"Query: {test['query']}")
+        print(f"Expected Type: {test['expected_type']}")
+        
+        try:
+            result = execute_rag_pipeline_tool(
+                query=test['query'],
+                user_id=f"test_user_{i}",
+                session_id=f"test_session_{i}"
+            )
+            
+            if result['success']:
+                print(f"\n✅ RAG Pipeline Success!")
+                print(f"📊 Quality Score: {result['quality_score']:.2f}")
+                print(f"⏱️  Processing Time: {result['processing_time']:.2f}s")
+                print(f"📚 Chunks Processed: {result['chunks_processed']}")
+                print(f"🔍 Query Type: {result['query_type']}")
+                print(f"✂️  Chunker: {result['selected_chunker']}")
+                print(f"🎯 Citations: {len(result['citations'])}")
+                print(f"🗄️  Vector DB Queries: {result['vector_db_queries']}")
+                print(f"✓ Validation: {'PASSED' if result['validation_passed'] else 'FAILED'}")
+                
+                # Check if query type matches expected
+                if result['query_type'] == test['expected_type']:
+                    print(f"✅ Query Type Classification: CORRECT")
+                else:
+                    print(f"⚠️  Query Type Classification: Expected {test['expected_type']}, got {result['query_type']}")
+                
+                print(f"\n📝 RAG Response:")
+                print(f"{result['response']}")
+                
+                if result['citations']:
+                    print(f"\n📚 Citations:")
+                    for j, citation in enumerate(result['citations'][:3], 1):
+                        print(f"  [{j}] {citation['source']} - {citation['document_type']} ({citation['confidence']:.2f})")
+                
+            else:
+                print(f"❌ RAG Pipeline Error: {result['error']}")
+                
+        except Exception as e:
+            print(f"❌ RAG Pipeline Exception: {str(e)}")
+            import traceback
+            traceback.print_exc()
+        
+        print("\n" + "=" * 80)
+    
+    print("\n🎉 RAG Pipeline test completed!")
 
 
 def run_demo():
@@ -40,13 +114,15 @@ def run_demo():
             "name": "Legislação - Consulta sobre Teletrabalho",
             "query": "O teletrabalho pode ser estendido ou prorrogado no TCE-PA?",
             "expected_agent": "TCE_RAG_Agent",
-            "description": "Deve ser roteado para o RAG Agent para buscar na base de conhecimento"
+            "description": "Deve ser roteado para o RAG Agent para buscar na base de conhecimento",
+            "test_rag_pipeline": True
         },
         {
             "name": "Acordão - Consulta específica",
             "query": "Qual é o tema do Acórdão nº 192?",
             "expected_agent": "TCE_RAG_Agent",
-            "description": "Deve ser roteado para o RAG Agent para buscar acordão específico"
+            "description": "Deve ser roteado para o RAG Agent para buscar acordão específico",
+            "test_rag_pipeline": True
         },
         {
             "name": "Expediente - Consulta processual",
@@ -134,6 +210,35 @@ def run_demo():
                 print(f"\n✅ SUCCESS: Correctly routed to {actual_agent}")
             else:
                 print(f"\n⚠️  NOTICE: Expected {test_case['expected_agent']}, got {actual_agent}")
+            
+            # Test RAG pipeline directly if specified
+            if test_case.get('test_rag_pipeline') and actual_agent == 'TCE_RAG_Agent':
+                print(f"\n🧪 TESTING RAG PIPELINE DIRECTLY:")
+                print("-" * 30)
+                
+                try:
+                    rag_result = execute_rag_pipeline_tool(
+                        query=test_case['query'],
+                        user_id=f"demo_user_{i}",
+                        session_id=f"demo_session_{i}"
+                    )
+                    
+                    if rag_result['success']:
+                        print(f"✅ RAG Pipeline Success!")
+                        print(f"📊 Quality Score: {rag_result['quality_score']:.2f}")
+                        print(f"⏱️  Processing Time: {rag_result['processing_time']:.2f}s")
+                        print(f"📚 Chunks Processed: {rag_result['chunks_processed']}")
+                        print(f"🔍 Query Type: {rag_result['query_type']}")
+                        print(f"✂️  Chunker: {rag_result['selected_chunker']}")
+                        print(f"🎯 Citations: {len(rag_result['citations'])}")
+                        print(f"✓ Validation: {'PASSED' if rag_result['validation_passed'] else 'FAILED'}")
+                        print(f"\n📝 RAG Response Preview:")
+                        print(f"{rag_result['response'][:200]}...")
+                    else:
+                        print(f"❌ RAG Pipeline Error: {rag_result['error']}")
+                        
+                except Exception as rag_error:
+                    print(f"❌ RAG Pipeline Exception: {str(rag_error)}")
             
         except Exception as e:
             print(f"\n❌ ERROR: {str(e)}")
@@ -245,7 +350,19 @@ def interactive_demo():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--interactive":
-        interactive_demo()
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "--interactive":
+            interactive_demo()
+        elif sys.argv[1] == "--rag-only":
+            test_rag_pipeline_only()
+        elif sys.argv[1] == "--help":
+            print("Usage:")
+            print("  python demo.py              - Run full system demo")
+            print("  python demo.py --interactive - Run interactive demo")
+            print("  python demo.py --rag-only    - Test only RAG pipeline")
+            print("  python demo.py --help        - Show this help")
+        else:
+            print(f"Unknown option: {sys.argv[1]}")
+            print("Use --help for available options")
     else:
         run_demo() 

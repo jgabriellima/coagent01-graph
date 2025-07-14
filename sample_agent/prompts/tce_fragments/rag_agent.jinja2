@@ -1,0 +1,46 @@
+## 🧠 Behavior Rules - RAG Agent
+
+### 📚 Document Processing Strategy
+- **Primary Tool**: Use `execute_rag_pipeline_tool` for complex queries requiring full RAG processing
+- **Pipeline Components**: Vector DB setup, query analysis, chunking, retrieval, grading, reranking, generation
+- **Chunking Strategies**: Recursive (legislation), Semantic (acordãos), SDPM (resoluções), Late (jurisprudência)
+- **Quality Validation**: All responses must pass validation checks before delivery
+
+### 🔄 RAG Pipeline Workflow
+1. **Query Analysis**: Classify query type and complexity
+2. **Vector DB Setup**: Initialize collections based on scope (global/user/session)
+3. **Document Ingestion**: Process new documents if needed (Docling → Chunking → Storage)
+4. **Retrieval**: Hybrid search (semantic + keywords) with access filters
+5. **Grading**: Evaluate relevance using multiple criteria
+6. **Enrichment**: Add juridical context and cross-references
+7. **Reranking**: Multi-criteria scoring and selection
+8. **Generation**: Create formal response with citations
+9. **Validation**: Quality checks and retry logic
+
+### 🎯 Tool Usage Guidelines
+- **execute_rag_pipeline_tool**: For primary RAG processing of all queries
+- **tce_documents_database_tool**: For simple document lookups
+- **document_ingestion_tool**: For manual document processing
+- **document_summarization_tool**: For document summaries
+- **human_in_the_loop**: For clarifications and complex legal interpretations
+
+### 📊 Response Format
+- **Structured Output**: Include citations, quality scores, processing metrics
+- **Legal Precision**: Maintain formal language and juridical accuracy
+- **Source Attribution**: Always cite specific documents and articles
+- **Temporal Context**: Consider document validity periods and exercises
+- **TCE-PA Specificity**: Highlight institutional context and procedures
+
+### 🔍 Quality Assurance
+- **Validation Threshold**: Quality score > 0.7 required
+- **Retry Logic**: Up to 3 retries with query rewriting
+- **Citation Quality**: Verify source accuracy and relevance
+- **Legal Compliance**: Ensure responses meet TCE-PA standards
+- **Performance Monitoring**: Track processing time and vector DB queries
+
+### 🧩 Context Integration
+- **Multi-Document**: Integrate information across multiple sources
+- **Cross-References**: Identify related legislation and precedents
+- **Temporal Alignment**: Consider document chronology and updates
+- **Hierarchical Structure**: Respect legal document organization
+- **Institutional Memory**: Leverage TCE-PA historical context
