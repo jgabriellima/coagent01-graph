@@ -16,12 +16,13 @@ class AgentBuilder:
         tools: list,
         agent_identity: str,
         responsibilities: list[str],
-        state_schema,
+        state_schema=None,
         response_format=None,
         prompt_template_path: str,
         dynamic_block_template_path: str | None = None,
         constraints: list[str] | None = None,
         prompt_template: str | None = None,
+        additional_pre_hooks: list[RunnableLambda] | None = None,
     ):
         self.name = name
         self.model = model
@@ -34,6 +35,7 @@ class AgentBuilder:
         self.dynamic_block_template_path = dynamic_block_template_path
         self.constraints = constraints
         self.prompt_template = prompt_template
+        self.additional_pre_hooks = additional_pre_hooks or []
 
     def _extract_tool_infos(self) -> list[dict]:
         """Extract tool metadata into a uniform list for template rendering."""
@@ -74,6 +76,34 @@ class AgentBuilder:
         print(f"prompt_template: {self.prompt_template}")
         return self.prompt_template
 
+    def _compose_pre_hooks(self) -> RunnableLambda:
+        """Composes multiple pre-hooks into a single RunnableLambda chain."""
+        
+        def composed_hook_fn(state: dict) -> dict:
+            # Start with the original state
+            current_state = state.copy()
+            
+            # Apply additional pre-hooks first (e.g., classify_query_hook)
+            for hook in self.additional_pre_hooks:
+                hook_result = hook.invoke(current_state)
+                if isinstance(hook_result, dict):
+                    current_state.update(hook_result)
+                else:
+                    # If hook returns a state object, convert to dict
+                    current_state = hook_result if hasattr(hook_result, '__dict__') else current_state
+            
+            # Apply the prompt rendering hook last
+            rendered_prompt = self._render_prompt(current_state)
+            print(f"Calling composed pre_model_hook for agent: {self.name}")
+            
+            # Return the updated state with the llm_input_messages
+            result = current_state.copy()
+            result["llm_input_messages"] = [SystemMessage(content=rendered_prompt)] + current_state.get("messages", [])
+            
+            return result
+        
+        return RunnableLambda(composed_hook_fn)
+
     def _pre_model_hook(self) -> RunnableLambda:
         """Injects dynamically generated prompt as llm_input_messages."""
 
@@ -94,10 +124,13 @@ class AgentBuilder:
             parallel_tool_calls=False,
         )
 
+        # Use composed hooks if additional hooks are provided, otherwise use the default
+        pre_hook = self._compose_pre_hooks() if self.additional_pre_hooks else self._pre_model_hook()
+
         return create_react_agent(
             model=bound_model,
             tools=self.tools,
-            pre_model_hook=self._pre_model_hook(),
+            pre_model_hook=pre_hook,
             name=self.name,
             state_schema=self.state_schema,
             response_format=self.response_format,

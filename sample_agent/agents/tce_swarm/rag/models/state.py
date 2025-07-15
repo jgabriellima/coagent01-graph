@@ -1,87 +1,137 @@
 """
-TCE RAG State Model
-Expanded state model with 24 new fields for complete pipeline control
+Estado especializado para pipeline RAG
+Contém apenas campos necessários com documentação de uso
 """
 
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional, Literal
+from typing import Annotated, List, Dict, Any, Optional, Literal
 from .chunks import ChunkResult, GradedChunk, EnrichedChunk, RerankedChunk, Citation
+from langgraph.graph.message import add_messages
+from langchain_core.messages import BaseMessage
 
-class TCE_RAG_State(BaseModel):
+
+class RAGState(BaseModel):
     """
-    Estado especializado para o pipeline RAG agentico do TCE-PA
-    Inclui todos os campos necessários para controle completo do workflow
+    Estado especializado para o pipeline RAG agentico
+    Campos refatorados baseados no uso real dos nodes
     """
-    
-    # Query Processing
-    original_query: str = Field(default="")
-    processed_query: str = Field(default="")
-    query_type: Literal["legislation", "acordao", "resolucao", "jurisprudencia"] = Field(default="legislation")
-    query_complexity: Literal["simple", "medium", "complex"] = Field(default="medium")
-    
-    # Document Context & Access Control
-    target_databases: List[str] = Field(default_factory=lambda: ["atos", "legislacao", "acordaos", "arquivos-tce"])
-    temporal_context: Optional[str] = Field(default=None)
-    juridical_context: Dict[str, Any] = Field(default_factory=dict)
-    
-    # Document Ingestion & Filtering
-    document_scope: Literal["global", "user_specific", "session_specific"] = Field(default="global")
-    user_id: str = Field(default="")
-    session_id: str = Field(default="")
-    ingestion_required: bool = Field(default=False)
-    user_documents: List[str] = Field(default_factory=list)
-    document_filters: Dict[str, Any] = Field(default_factory=dict)
-    
-    # Vector Database Management
-    vector_db_type: Literal["chroma", "pinecone", "weaviate", "faiss"] = Field(default="chroma")
-    vector_db_instances: Dict[str, Any] = Field(default_factory=dict)
-    collection_names: List[str] = Field(default_factory=list)
-    embedding_model: str = Field(default="sentence-transformers/all-MiniLM-L6-v2")
-    
-    # Chunking Strategy
-    selected_chunker: Literal["recursive", "semantic", "sdpm", "late"] = Field(default="recursive")
-    chunk_size: int = Field(default=512)
-    chunk_overlap: int = Field(default=50)
-    chunking_metadata: Dict[str, Any] = Field(default_factory=dict)
-    
-    # Ingestion Control
-    documents_to_ingest: List[Dict[str, Any]] = Field(default_factory=list)
-    ingestion_strategy: Literal["batch", "streaming", "incremental"] = Field(default="batch")
-    ingestion_status: Dict[str, str] = Field(default_factory=dict)
-    
-    # Retrieval Results
-    retrieved_chunks: List[ChunkResult] = Field(default_factory=list)
-    relevance_scores: List[float] = Field(default_factory=list)
-    graded_chunks: List[GradedChunk] = Field(default_factory=list)
-    
-    # Enrichment & Reranking
-    enriched_context: List[EnrichedChunk] = Field(default_factory=list)
-    reranked_chunks: List[RerankedChunk] = Field(default_factory=list)
-    final_context: str = ""
-    
-    # Generation & Validation
-    generated_response: str = Field(default="")
-    quality_score: float = Field(default=0.0)
-    validation_passed: bool = Field(default=False)
-    citations: List[Citation] = Field(default_factory=list)
-    
-    # Workflow Control
-    retry_count: int = Field(default=0)
-    max_retries: int = Field(default=3)
-    needs_rewrite: bool = Field(default=False)
-    needs_enrichment: bool = Field(default=False)
-    needs_ingestion: bool = Field(default=False)
-    
-    # Performance Metrics
-    retrieval_time: float = Field(default=0.0)
-    processing_time: float = Field(default=0.0)
-    ingestion_time: float = Field(default=0.0)
-    total_tokens_used: int = Field(default=0)
-    vector_db_queries: int = Field(default=0)
-    
+
+    # ===== QUERY PROCESSING =====
+    original_query: Optional[str] = Field(default=None, description="Query original do usuário")
+    processed_query: Optional[str] = Field(
+        default=None, description="Query processada/otimizada para retrieval"
+    )
+    query_type: Optional[Literal["legislation", "acordao", "resolucao", "jurisprudencia"]] = (
+        Field(default=None)
+    )
+    query_complexity: Optional[Literal["simple", "medium", "complex"]] = Field(default=None)
+
+    file_paths: Optional[List[str]] = Field(
+        default=None, description="Caminhos dos arquivos a serem processados"
+    )
+    # ===== DOCUMENT CONTEXT =====
+    target_databases: Optional[List[str]] = Field(
+        default=None
+    )
+    temporal_context: Optional[str] = Field(
+        default=None, description="Contexto temporal para filtrar documentos"
+    )
+    document_context: Optional[Dict[str, Any]] = Field(
+        default=None, description="Metadados contextuais para filtros"
+    )
+
+    # ===== ACCESS CONTROL =====
+    document_scope: Optional[Literal["global", "user_specific", "session_specific"]] = Field(
+        default=None
+    )
+    user_id: Optional[str] = Field(
+        default=None, description="ID do usuário para controle de acesso"
+    )
+    session_id: Optional[str] = Field(
+        default=None, description="ID da sessão para isolamento temporal"
+    )
+
+    # ===== DOCUMENT INGESTION =====
+    ingestion_required: Optional[bool] = Field(
+        default=None, description="Flag para ingestão de novos documentos"
+    )
+    documents_to_ingest: Optional[List[Dict[str, Any]]] = Field(
+        default=None, description="Documentos para processar"
+    )
+    user_documents: Optional[List[str]] = Field(
+        default=None, description="IDs de documentos do usuário"
+    )
+    ingestion_status: Optional[Dict[str, str]] = Field(
+        default=None, description="Status de ingestão por documento"
+    )
+
+    # ===== VECTOR DATABASE =====
+    vector_db_type: Optional[Literal["azure_ai_search", "lancedb"]] = Field(
+        default=None
+    )
+    collection_names: Optional[List[str]] = Field(
+        default=None, description="Nomes das coleções no vector database"
+    )
+
+    # ===== CHUNKING STRATEGY =====
+    selected_chunker: Optional[Literal["recursive", "semantic", "sdpm", "late"]] = Field(
+        default=None
+    )
+    chunk_size: Optional[int] = Field(default=None, description="Tamanho dos chunks")
+    chunk_overlap: Optional[int] = Field(default=None, description="Sobreposição entre chunks")
+    chunking_metadata: Optional[Dict[str, Any]] = Field(
+        default=None, description="Configurações específicas do chunking"
+    )
+
+    # ===== RETRIEVAL RESULTS =====
+    retrieved_chunks: Optional[List[ChunkResult]] = Field(
+        default=None, description="Chunks encontrados na busca"
+    )
+    graded_chunks: Optional[List[GradedChunk]] = Field(
+        default=None, description="Chunks avaliados por relevância"
+    )
+    enriched_context: Optional[List[EnrichedChunk]] = Field(
+        default=None, description="Chunks enriquecidos com contexto"
+    )
+    reranked_chunks: Optional[List[RerankedChunk]] = Field(
+        default=None, description="Chunks reordenados por relevância"
+    )
+
+    # ===== GENERATION =====
+    generated_response: Optional[str] = Field(default=None, description="Resposta final gerada")
+    quality_score: Optional[float] = Field(
+        default=None, description="Score de qualidade da resposta"
+    )
+    citations: Optional[List[Citation]] = Field(
+        default=None, description="Citações dos documentos fonte"
+    )
+    final_context: Optional[str] = Field(default=None, description="Contexto final consolidado")
+
+    # ===== WORKFLOW CONTROL =====
+    needs_enrichment: Optional[bool] = Field(
+        default=None, description="Flag para enriquecimento de contexto"
+    )
+    needs_rewrite: Optional[bool] = Field(
+        default=None, description="Flag para reescrita da query"
+    )
+    retry_count: Optional[int] = Field(default=None, description="Contador de tentativas de retry")
+    max_retries: Optional[int] = Field(default=None, description="Máximo de tentativas de retry")
+
+    # ===== PERFORMANCE METRICS =====
+    retrieval_time: Optional[float] = Field(default=None, description="Tempo de busca")
+    processing_time: Optional[float] = Field(
+        default=None, description="Tempo total de processamento"
+    )
+    ingestion_time: Optional[float] = Field(default=None, description="Tempo de ingestão")
+    vector_db_queries: Optional[int] = Field(
+        default=None, description="Número de consultas ao vector database"
+    )
+
+    # ===== MESSAGES =====
+    messages: Annotated[List[BaseMessage], add_messages] = Field(
+        default_factory=lambda: [], description="Mensagens do pipeline RAG"
+    )
+
     def copy(self, **kwargs):
         """Create a copy of the state with optional field updates"""
         return self.model_copy(update=kwargs)
-    
-    class Config:
-        arbitrary_types_allowed = True 

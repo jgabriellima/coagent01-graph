@@ -97,7 +97,7 @@ def create_handoff_tool_with_task(
     @tool(name, description=description)
     def handoff_to_agent_with_task(
         state: Annotated[dict, InjectedState],
-        task_message: str,  # this is required at tool invocation
+        task_message: Annotated[str, "Task description to be passed to the agent"],
         tool_call_id: Annotated[str, InjectedToolCallId],
     ):
         # Only the task message is passed forward in messages

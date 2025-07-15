@@ -1,64 +1,55 @@
 """
-Context Enrichment Node for TCE-PA RAG Pipeline
-Enriches chunks with juridical context, cross-references, and temporal information
+Context Enrichment Node for RAG Pipeline
+Enriches chunks with context, cross-references, and temporal information
 """
 
+from pydantic import BaseModel, Field
+from typing import List
 from ..utils import llm
-from ..models.state import TCE_RAG_State
+from ..models.state import RAGState
 from ..models.chunks import EnrichedChunk
-from ..models.responses import EnrichmentResult
 import time
 
-def context_enrichment_node(state: TCE_RAG_State) -> TCE_RAG_State:
+
+class EnrichedChunksResponse(BaseModel):
+    """Response model for enriched chunks generation"""
+    enriched_chunks: List[EnrichedChunk] = Field(
+        description="List of chunks enriched with context information"
+    )
+
+
+def context_enrichment_node(state: RAGState) -> RAGState:
     """
-    Enriquece contexto dos chunks com informações jurídicas específicas
+    Enriquece contexto dos chunks com informações específicas
     """
-    
+
     start_time = time.time()
-    
+
+    # Single LLM call to generate enriched chunks
     instruction = f"""
-    Enriqueça o contexto dos chunks com informações jurídicas específicas:
+    Enrich chunks with specific context information for query: "{state.processed_query}"
     
-    Query: {state.processed_query}
-    Contexto Jurídico: {state.juridical_context}
-    Contexto Temporal: {state.temporal_context}
+    For each chunk, provide:
+    - Enhanced context with temporal and document information
+    - Cross-references to related content
+    - Ranking factors for semantic, temporal, and context relevance
     
-    Para cada chunk, determine:
-    1. Relevância semântica (0-1)
-    2. Relevância jurídica (0-1)  
-    3. Relevância temporal (0-1)
-    4. Especificidade TCE-PA (0-1)
-    5. Contexto enriquecido
-    6. Referências cruzadas
-    
-    Chunks para enriquecer: {len(state.graded_chunks)}
+    Document context: {state.document_context}
+    Temporal context: {state.temporal_context}
     """
-    
-    enrichment_result = llm(instruction, EnrichmentResult,
-                           query=state.processed_query,
-                           graded_chunks=state.graded_chunks,
-                           juridical_context=state.juridical_context)
-    
-    # Simular enriquecimento de cada chunk
-    enriched_chunks = []
-    for graded_chunk in state.graded_chunks:
-        # Só enriquecer chunks com relevância adequada
-        if graded_chunk.relevance_score > 0.6:
-            enriched_chunk = EnrichedChunk(
-                chunk=graded_chunk.chunk,
-                semantic_relevance=graded_chunk.relevance_score,
-                juridical_relevance=min(1.0, graded_chunk.relevance_score + 0.1),
-                temporal_relevance=0.8 if state.temporal_context else 0.5,
-                tce_specificity=0.9,  # Alta especificidade para TCE-PA
-                enriched_context=f"Contexto enriquecido para: {graded_chunk.chunk.content[:50]}...",
-                cross_references=[f"ref_{i}" for i in range(2)]
-            )
-            enriched_chunks.append(enriched_chunk)
-    
-    enrichment_time = time.time() - start_time
-    
+
+    response = llm(
+        instruction,
+        EnrichedChunksResponse,
+        graded_chunks=state.graded_chunks,
+        document_context=state.document_context,
+        temporal_context=state.temporal_context,
+    )
+
+    # Update metrics and return
+    state.processing_time = state.processing_time + (time.time() - start_time)
+
     return state.copy(
-        enriched_context=enriched_chunks,
+        enriched_context=response.enriched_chunks,
         needs_enrichment=False,
-        processing_time=state.processing_time + enrichment_time
-    ) 
+    )

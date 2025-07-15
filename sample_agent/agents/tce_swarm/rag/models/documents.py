@@ -1,5 +1,5 @@
 """
-Document Models for TCE-PA RAG Pipeline
+Document Models for RAG Pipeline
 Pydantic models for document processing and structure
 """
 
@@ -26,25 +26,24 @@ class DoclingProcessingResult(BaseModel):
     processing_time: float = Field(description="Tempo de processamento")
     tables: List[Dict[str, Any]] = Field(description="Tabelas extraídas")
 
-class TCEDocumentMetadata(BaseModel):
-    """Metadados específicos TCE-PA"""
+class DocumentMetadata(BaseModel):
+    """Metadados genéricos de documento extensíveis"""
     document_type: str = Field(description="Tipo de documento")
     document_number: str = Field(description="Número do documento")
     year: str = Field(description="Ano do documento")
-    exercise: str = Field(description="Exercício fiscal")
-    validity_period: Optional[str] = Field(description="Período de vigência")
-    jurisdiction: str = Field(description="Jurisdição")
-    rapporteur: Optional[str] = Field(description="Relator")
     created_date: Optional[datetime] = Field(description="Data de criação")
     last_updated: Optional[datetime] = Field(description="Última atualização")
     
-class TCEDocumentInfo(BaseModel):
-    """Informações completas do documento TCE-PA"""
+    # Metadados extensíveis para diferentes tipos de documento
+    custom_fields: Dict[str, Any] = Field(default_factory=dict, description="Campos customizados por tipo de documento")
+    
+class DocumentInfo(BaseModel):
+    """Informações completas do documento"""
     doc_id: str = Field(description="ID único do documento")
     file_path: str = Field(description="Caminho do arquivo")
     content: str = Field(description="Conteúdo do documento")
     structure: DocumentStructure = Field(description="Estrutura hierárquica")
-    metadata: TCEDocumentMetadata = Field(description="Metadados TCE-PA")
+    metadata: DocumentMetadata = Field(description="Metadados do documento")
     processing_info: DoclingProcessingResult = Field(description="Resultado do processamento")
     ingestion_timestamp: datetime = Field(description="Timestamp da ingestão")
     user_id: str = Field(description="ID do usuário")

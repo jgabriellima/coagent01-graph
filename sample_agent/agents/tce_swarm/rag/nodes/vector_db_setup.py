@@ -1,62 +1,48 @@
 """
-Vector Database Setup Node for TCE-PA RAG Pipeline
+Vector Database Setup Node for RAG Pipeline
 Initializes and maintains vector database instances in memory
 """
 
+from pydantic import BaseModel, Field
+from typing import List, Optional
 from ..utils import llm
-from ..models.state import TCE_RAG_State
-import time
+from ..models.state import RAGState
 
-def vector_db_setup_node(state: TCE_RAG_State) -> TCE_RAG_State:
+
+class CollectionNamesResponse(BaseModel):
+    """Response model for collection names generation"""
+    collection_names: Optional[List[str]] = Field(
+        default=["global"],
+        description="List of collection names for the vector database"
+    )
+
+
+def vector_db_setup_node(state: RAGState) -> RAGState:
     """
-    Configura e mantém instâncias de vector database em memória:
-    - Inicializa connections para diferentes tipos de VectorDB
-    - Carrega embeddings model uma única vez
-    - Cria/acessa collections baseadas no escopo
-    - Otimiza performance com cache em memória
+    Configura vector database e determina collections baseadas no escopo
     """
     
-    # Configuração do vector database baseado no tipo
-    vector_db_configs = {
-        "chroma": "ChromaVectorDB",
-        "pinecone": "PineconeVectorDB",
-        "weaviate": "WeaviateVectorDB",
-        "faiss": "FAISSVectorDB"
-    }
+    # Single LLM call to generate collection names
+    instruction = f"""
+    Generate collection names for vector database based on scope:
     
-    # Simula inicialização de instância se não existir
-    if state.vector_db_type not in state.vector_db_instances:
-        instruction = f"""
-        Simule a inicialização de uma instância de vector database:
-        
-        Tipo: {state.vector_db_type}
-        Embedding Model: {state.embedding_model}
-        
-        Retorne configurações realísticas de inicialização incluindo:
-        - Status da conexão
-        - Configurações de embedding
-        - Diretório de persistência
-        - Estatísticas de performance
-        """
-        
-        db_instance = llm(instruction, None, 
-                         vector_db_type=state.vector_db_type,
-                         embedding_model=state.embedding_model)
-        
-        # Adiciona instância simulada ao estado
-        state.vector_db_instances[state.vector_db_type] = {
-            "instance": db_instance,
-            "initialized_at": time.time(),
-            "status": "active"
-        }
+    Vector DB Type: {state.vector_db_type}
+    Document Scope: {state.document_scope}
+    Target Databases: {str(state.target_databases)}
     
-    # Determina collections baseadas no escopo
-    collection_names = []
-    if state.document_scope == "global":
-        collection_names = [f"tce_{db}" for db in state.target_databases]
-    elif state.document_scope == "user_specific":
-        collection_names = [f"tce_{db}_{state.user_id}" for db in state.target_databases]
-    elif state.document_scope == "session_specific":
-        collection_names = [f"tce_{db}_{state.session_id}" for db in state.target_databases]
+    Return list of collection names following naming patterns for the scope.
+    if the scope is "global", return a collection_names list with a single element "global"
+    """
     
-    return state.copy(collection_names=collection_names) 
+    response: CollectionNamesResponse = llm(
+        instruction,
+        CollectionNamesResponse,
+        vector_db_type=state.vector_db_type,
+        document_scope=state.document_scope,
+        target_databases=state.target_databases,
+    )
+    
+    if not response.collection_names:
+        response.collection_names = ["global"]
+    
+    return state.copy(collection_names=response.collection_names) 

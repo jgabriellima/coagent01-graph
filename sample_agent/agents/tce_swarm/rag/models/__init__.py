@@ -1,23 +1,27 @@
 """
-Pydantic Models for TCE-PA RAG Pipeline
+Pydantic Models for RAG Pipeline
 Structured data models for documents, chunks, and responses
 """
 
-from .state import TCE_RAG_State
-from .documents import DocumentStructure, DoclingProcessingResult
-from .chunks import ChunkResult, ChunkingResult, VectorSearchResult, GradedChunk
-from .responses import QueryAnalysisResult, ChunkStrategyResult, IngestionResult, RetrievalResult
+from .state import RAGState
+from .documents import DocumentStructure, DoclingProcessingResult, DocumentMetadata, DocumentInfo
+from .chunks import ChunkResult, ChunkingResult, VectorSearchResult, GradedChunk, EnrichedChunk, RerankedChunk, Citation
+from .responses import QueryAnalysisResult, ChunkStrategyResult, IngestionResult
 
 __all__ = [
-    "TCE_RAG_State",
+    "RAGState",
     "DocumentStructure",
     "DoclingProcessingResult",
+    "DocumentMetadata",
+    "DocumentInfo",
     "ChunkResult",
     "ChunkingResult", 
     "VectorSearchResult",
     "GradedChunk",
+    "EnrichedChunk",
+    "RerankedChunk",
+    "Citation",
     "QueryAnalysisResult",
     "ChunkStrategyResult",
     "IngestionResult",
-    "RetrievalResult"
 ] 

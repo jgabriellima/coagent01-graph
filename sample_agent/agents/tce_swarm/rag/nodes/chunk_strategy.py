@@ -1,17 +1,18 @@
 """
-Chunk Strategy Selection Node for TCE-PA RAG Pipeline
+Chunk Strategy Selection Node for RAG Pipeline
 Selects optimal chunking strategy based on document type and query complexity
 """
 
 from ..utils import llm
-from ..models.state import TCE_RAG_State
+from ..models.state import RAGState
 from ..models.responses import ChunkStrategyResult
 
-def chunk_strategy_node(state: TCE_RAG_State) -> TCE_RAG_State:
+
+def chunk_strategy_node(state: RAGState) -> RAGState:
     """
     Seleciona estratégia de chunking via LLM baseada no contexto
     """
-    
+
     instruction = f"""
     Selecione a estratégia de chunking mais adequada para:
     
@@ -27,15 +28,13 @@ def chunk_strategy_node(state: TCE_RAG_State) -> TCE_RAG_State:
     
     Considere características específicas de documentos estruturados.
     """
-    
-    strategy = llm(instruction, ChunkStrategyResult,
-                   query_type=state.query_type,
-                   complexity=state.query_complexity,
-                   databases=state.target_databases)
-    
-    return state.copy(
-        selected_chunker=strategy.selected_strategy,
-        chunk_size=strategy.chunk_size,
-        chunk_overlap=strategy.chunk_overlap,
-        chunking_metadata=strategy.configuration
-    ) 
+
+    strategy = llm(
+        instruction,
+        ChunkStrategyResult,
+        query_type=state.query_type,
+        complexity=state.query_complexity,
+        databases=state.target_databases,
+    )
+
+    return state.copy(**strategy)

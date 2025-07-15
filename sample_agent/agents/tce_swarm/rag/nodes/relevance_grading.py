@@ -1,64 +1,54 @@
 """
-Relevance Grading Node for TCE-PA RAG Pipeline
-Evaluates relevance of retrieved chunks using multiple criteria
+Relevance Grading Node for RAG Pipeline
+Evaluates and grades chunks based on relevance to query
 """
 
+from pydantic import BaseModel, Field
+from typing import List
 from ..utils import llm
-from ..models.state import TCE_RAG_State
+from ..models.state import RAGState
 from ..models.chunks import GradedChunk
-from ..models.responses import GradingResult
 import time
 
-def relevance_grading_node(state: TCE_RAG_State) -> TCE_RAG_State:
+
+class GradedChunksResponse(BaseModel):
+    """Response model for graded chunks generation"""
+    graded_chunks: List[GradedChunk] = Field(
+        description="List of chunks graded by relevance to the query"
+    )
+
+
+def relevance_grading_node(state: RAGState) -> RAGState:
     """
-    Avalia relevância dos chunks recuperados usando múltiplos critérios
+    Avalia relevância dos chunks para a query processada
     """
-    
+
     start_time = time.time()
-    
+
+    # Single LLM call to generate graded chunks
     instruction = f"""
-    Avalie a relevância dos chunks recuperados para a consulta jurídica:
+    Grade chunks for relevance to query: "{state.processed_query}"
     
-    Query: {state.processed_query}
-    Tipo: {state.query_type}
-    Contexto Temporal: {state.temporal_context}
+    For each chunk, provide:
+    - Relevance score (0.0-1.0)
+    - Grading justification
+    - Key relevance factors
     
-    Critérios de avaliação:
-    1. Relevância semântica (0-1)
-    2. Aplicabilidade jurídica (0-1)
-    3. Vigência temporal (0-1)
-    4. Especificidade TCE-PA (0-1)
-    
-    Chunks para avaliar: {len(state.retrieved_chunks)}
+    Query type: {state.query_type}
+    Query complexity: {state.query_complexity}
     """
-    
-    grading_result = llm(instruction, GradingResult,
-                        query=state.processed_query,
-                        chunks=state.retrieved_chunks,
-                        query_type=state.query_type)
-    
-    # Simular avaliação de cada chunk
-    graded_chunks = []
-    for i, chunk in enumerate(state.retrieved_chunks):
-        # Relevância baseada na posição (chunks top têm maior relevância)
-        relevance_score = max(0.5, 1.0 - (i * 0.1))
-        confidence = 0.8 + (0.2 * relevance_score)
-        
-        graded_chunk = GradedChunk(
-            chunk=chunk,
-            relevance_score=relevance_score,
-            confidence=confidence
-        )
-        graded_chunks.append(graded_chunk)
-    
-    # Determinar se precisa de reescrita
-    average_relevance = sum(gc.relevance_score for gc in graded_chunks) / len(graded_chunks) if graded_chunks else 0
-    needs_rewrite = average_relevance < 0.6
-    
-    grading_time = time.time() - start_time
-    
+
+    response = llm(
+        instruction,
+        GradedChunksResponse,
+        retrieved_chunks=state.retrieved_chunks,
+        query=state.processed_query,
+        query_type=state.query_type,
+    )
+
+    # Update metrics and return
+    state.processing_time = time.time() - start_time
+
     return state.copy(
-        graded_chunks=graded_chunks,
-        needs_rewrite=needs_rewrite,
-        processing_time=state.processing_time + grading_time
-    ) 
+        graded_chunks=response.graded_chunks,
+    )

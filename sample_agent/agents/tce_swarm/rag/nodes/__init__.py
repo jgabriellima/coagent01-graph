@@ -1,6 +1,6 @@
 """
 RAG Pipeline Nodes for TCE-PA
-Implements the 8 core nodes of the RAG pipeline workflow
+Implements the core nodes of the RAG pipeline workflow
 """
 
 from .vector_db_setup import vector_db_setup_node
@@ -12,6 +12,7 @@ from .relevance_grading import relevance_grading_node
 from .context_enrichment import context_enrichment_node
 from .reranking import reranking_node
 from .response_generation import response_generation_node
+from .quality_validation import quality_validation_node
 
 __all__ = [
     "vector_db_setup_node",
@@ -22,5 +23,6 @@ __all__ = [
     "relevance_grading_node",
     "context_enrichment_node",
     "reranking_node",
-    "response_generation_node"
+    "response_generation_node",
+    "quality_validation_node"
 ] 

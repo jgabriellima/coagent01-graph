@@ -5,20 +5,32 @@ from langchain_core.tools import InjectedToolCallId
 from langgraph.types import interrupt
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage
-from pydantic import BaseModel
 import json
 import datetime
+from langgraph.prebuilt import InjectedState
+from langchain_core.runnables import RunnableConfig
+from sample_agent.agents.tce_swarm.configuration import extract_copilotkit_config
+
+# Import models from separate file
+from .models import (
+    EtceProcessoResponse,
+    EtceExpedienteResponse,
+    WebSearchResponse,
+)
+
+# Initialize LLM for tool responses
+llm_model = init_chat_model("groq:llama-3.3-70b-versatile", temperature=0.3)
 
 
 def human_in_the_loop(
     question_to_user: str, tool_call_id: Annotated[str, InjectedToolCallId]
 ):
     """
-    Strategic human intervention tool for critical decision points in the TCE-PA workflow.
+    Strategic human intervention tool for critical decision points in the workflow.
 
-    This tool enables the system to escalate complex legal interpretations, ambiguous queries,
+    This tool enables the system to escalate complex interpretations, ambiguous queries,
     or validation requests to human operators when automated processing is insufficient.
-    Essential for maintaining accuracy in legal and regulatory contexts where human judgment
+    Essential for maintaining accuracy in contexts where human judgment
     is required for proper case handling and compliance validation.
 
     Args:
@@ -30,113 +42,56 @@ def human_in_the_loop(
             "question": question_to_user,
             "tool_call_id": tool_call_id,
             "priority": "high",
-            "context": "tce_legal_workflow",
+            "context": "institutional_workflow",
         }
     )
     print(f"Human intervention response: {user_response}")
     return f"Human operator responded: {user_response}"
 
 
-# Initialize LLM for tool responses
-llm_model = init_chat_model("groq:llama-3.3-70b-versatile", temperature=0.3)
-
-
-class TCEDocumentResponse(BaseModel):
-    """Structured response for TCE document searches"""
-
-    response: str
-    document_type: str
-    sources: list[str]
-    confidence: float
-    legal_context: str
-
-
-class eTCESearchResponse(BaseModel):
-    """Structured response for eTCE expediente searches"""
-
-    numeroProcesso: str
-    dataAutuacao: str
-    unidadeJurisdicionada: str
-    classeSubclasse: str
-    relator: str
-    interessados: str
-    exercicio: int
-    assunto: str
-    sigiloso: bool
-    status: str
-
-
-class ProcessDetailsResponse(BaseModel):
-    """Structured response for process details"""
-
-    numeroProcesso: str
-    situacaoAtual: str
-    dataUltimaMovimentacao: str
-    localizacaoAtual: str
-    proximosPrazos: list[str]
-    historicoMovimentacao: list[dict]
-
-
-class WebSearchResult(BaseModel):
-    """Individual web search result"""
-    title: str
-    url: str
-    summary: str
-
-
-class WebSearchResponse(BaseModel):
-    """Structured response for web searches"""
-
-    results: list[WebSearchResult]
-    overall_summary: str
-    relevance_score: float
-
-
-def tce_documents_database_tool(
-    query: str,
-    document_type: str = "all",
+def etce_processos_info_tool(
+    numero_processo: str,
     tool_call_id: Annotated[str, InjectedToolCallId] = None,
 ):
     """
-    Access the TCE-PA knowledge base for legislation, resolutions, acts, and jurisprudence.
+    Retorna dados sobre um processo do TCE-PA consultando o Processo Eletrônico (etce).
 
     Args:
-        query: The search query
-        document_type: Type of document to search ("legislacao", "acordao", "resolucao", "ato", "all")
+        numero_processo: The process number to query (e.g., "2024.00001.000001-7")
     """
 
     prompt = f"""
-    You are a specialized legal assistant for the Tribunal de Contas do Estado do Pará (TCE-PA).
+    You are a specialist in the Electronic Process System (Processo Eletrônico) of TCE-PA.
+
+    Task: Generate realistic and concise information for a specific PROCESSO in the TCE-PA system.
     
-    Task: Process this query for TCE-PA legal documents and provide a realistic response.
+    Process Number: {numero_processo}
     
-    Query: {query}
-    Document Type: {document_type}
+    Create realistic processo data with these fields only:
+    1. numeroProcesso: The process number (same as input)
+    2. dataAutuacao: Filing date in DD/MM/YYYY format
+    3. unidadeJurisdicionada: Jurisdictional unit (e.g., "Prefeitura Municipal de Belém")
+    4. classeSubclasse: Process class (e.g., "Prestação de Contas", "Tomada de Contas")
+    5. relator: Responsible counselor name
+    6. situacaoAtual: Current status (e.g., "Em análise", "Aguardando resposta")
+    7. localizacaoAtual: Current location (e.g., "Gabinete do Conselheiro João Silva")
     
-    Generate a response that:
-    1. Provides relevant legal information based on TCE-PA context
-    2. References appropriate document types (legislation, resolutions, acts, jurisprudence)
-    3. Maintains professional legal language
-    4. Includes realistic document references
-    5. Considers temporal aspects of legal documents
-    
-    Focus on TCE-PA's jurisdiction over public accounts, auditing procedures, and administrative compliance.
+    Use realistic TCE-PA institutional terminology and Brazilian date format.
     """
 
-    response = llm_model.with_structured_output(TCEDocumentResponse).invoke(
-        [HumanMessage(content=prompt)]
-    )
+    response: EtceProcessoResponse = llm_model.with_structured_output(
+        EtceProcessoResponse
+    ).invoke([HumanMessage(content=prompt)])
+
+    formatted_response = response.model_dump_json()
 
     return Command(
         update={
-            "rag_result": response.response,
-            "document_type": response.document_type,
-            "retrieval_results": response.sources,
-            "legal_context": response.legal_context,
-            "confidence": response.confidence,
+            "query": numero_processo,
+            **response.model_dump(),
             "messages": [
                 ToolMessage(
-                    f"Busca realizada na base de conhecimento do TCE-PA: {response.response}",
+                    f"Dados do processo {numero_processo}: {formatted_response}",
                     tool_call_id=tool_call_id,
                 )
             ],
@@ -144,221 +99,60 @@ def tce_documents_database_tool(
     )
 
 
-def document_ingestion_tool(
-    document_content: str,
-    document_type: str,
-    metadata: dict = None,
+def etce_expedientes_info_tool(
+    numero_expediente: str,
     tool_call_id: Annotated[str, InjectedToolCallId] = None,
+    # ignore this block
+    # state: Annotated[dict, InjectedState],
+    # config: RunnableConfig = None,
 ):
     """
-    Ingest and process documents using chonkie chunking strategies.
+    Retorna dados sobre um expediente do TCE-PA consultando o Processo Eletrônico (etce).
 
     Args:
-        document_content: The document content to process
-        document_type: Type of document
-        metadata: Document metadata including temporal information
+        numero_expediente: The expediente number to query (e.g., "EXP-2024-00001")
     """
 
     prompt = f"""
-    You are a document processing specialist for TCE-PA legal documents.
+    You are a specialist in the Electronic Process System (Processo Eletrônico) of TCE-PA.
+
+    Task: Generate realistic and concise information for a specific EXPEDIENTE in the TCE-PA system.
     
-    Task: Process this document content using advanced chunking strategies.
+    Expediente Number: {numero_expediente}
     
-    Document Content: {document_content[:500]}...
-    Document Type: {document_type}
-    Metadata: {metadata}
+    Create realistic expediente data with these fields only:
+    1. numeroExpediente: The expediente number (same as input)
+    2. dataAbertura: Opening date in DD/MM/YYYY format
+    3. tipoExpediente: Type of expediente (e.g., "Consulta", "Denúncia", "Representação")
+    4. unidadeOriginaria: Originating unit (e.g., "Gabinete do Conselheiro", "Departamento de Controle")
+    5. assunto: Brief subject description
+    6. situacaoAtual: Current status (e.g., "Em tramitação", "Aguardando parecer")
     
-    Analyze the document and provide:
-    1. Estimated number of logical chunks
-    2. Key sections identified
-    3. Processing strategy used
-    4. Temporal context extraction
-    5. Legal document classification
-    
-    Focus on preserving legal context and maintaining document integrity.
+    Use realistic TCE-PA institutional terminology and Brazilian date format.
+    Focus on expediente-specific workflow and terminology.
     """
 
-    response = llm_model.invoke([HumanMessage(content=prompt)])
-    chunks_count = len(document_content.split()) // 100
+    response: EtceExpedienteResponse = llm_model.with_structured_output(
+        EtceExpedienteResponse
+    ).invoke([HumanMessage(content=prompt)])
+
+    formatted_response = response
+
+    # ignore this block
+    # To access the configuration, use the following code:
+    # ```python
+    # user_id = config["configurable"].get(
+    #     "user_id", extract_copilotkit_config(state, config)
+    # )
+    # ```
 
     return Command(
         update={
-            "chunks": [
-                f"Chunk {i}: {document_content[:100]}..."
-                for i in range(min(chunks_count, 5))
-            ],
-            "document_content": document_content,
-            "processing_analysis": response.content,
-            "metadata": metadata
-            or {"processed_at": datetime.datetime.now().isoformat()},
+            "query": numero_expediente,
+            "etce_expediente_response": response,
             "messages": [
                 ToolMessage(
-                    f"Documento processado com {chunks_count} chunks usando estratégia de chunking otimizada para documentos jurídicos.",
-                    tool_call_id=tool_call_id,
-                )
-            ],
-        }
-    )
-
-
-def document_summarization_tool(
-    document_content: str, tool_call_id: Annotated[str, InjectedToolCallId] = None
-):
-    """
-    Generate summaries of TCE-PA documents.
-
-    Args:
-        document_content: The document content to summarize
-    """
-
-    prompt = f"""
-    You are a legal document summarization specialist for TCE-PA.
-    
-    Task: Create a comprehensive summary of this TCE-PA document.
-    
-    Document Content: {document_content}
-    
-    Generate a summary that:
-    1. Captures key legal points and decisions
-    2. Identifies relevant legislation and precedents
-    3. Highlights procedural aspects
-    4. Maintains legal accuracy and context
-    5. Provides actionable insights for TCE-PA operations
-    
-    Focus on administrative compliance, auditing procedures, and regulatory implications.
-    """
-
-    response = llm_model.invoke([HumanMessage(content=prompt)])
-
-    return Command(
-        update={
-            "document_summary": response.content,
-            "summary_quality": "high",
-            "messages": [
-                ToolMessage(
-                    f"Resumo gerado: {response.content}",
-                    tool_call_id=tool_call_id,
-                )
-            ],
-        }
-    )
-
-
-def etce_search_tool(
-    expediente_number: str,
-    year: str = None,
-    tool_call_id: Annotated[str, InjectedToolCallId] = None,
-):
-    """
-    Search for expedientes in the eTCE (Electronic Process System) of TCE-PA.
-
-    Args:
-        expediente_number: The expediente number to search for
-        year: The year of the expediente (optional)
-    """
-
-    prompt = f"""
-    You are an eTCE system specialist for TCE-PA.
-    
-    Task: Generate realistic expediente data for the Electronic Process System.
-    
-    Expediente Number: {expediente_number}
-    Year: {year or "current"}
-    
-    Create a realistic expediente record that includes:
-    1. Complete process number with TC prefix
-    2. Appropriate autuação date
-    3. Relevant jurisdictional unit
-    4. Proper case classification
-    5. Assigned rapporteur
-    6. Interested parties
-    7. Current status and location
-    
-    Base the response on typical TCE-PA procedures and ensure legal accuracy.
-    """
-
-    response = llm_model.with_structured_output(eTCESearchResponse).invoke(
-        [HumanMessage(content=prompt)]
-    )
-
-    formatted_response = f"""
-Número do Processo: {response.numeroProcesso}
-Data de Autuação: {response.dataAutuacao}
-Unidade Jurisdicionada: {response.unidadeJurisdicionada}
-Classe/Subclasse: {response.classeSubclasse}
-Relator: {response.relator}
-Interessados: {response.interessados}
-Exercício: {response.exercicio}
-Assunto: {response.assunto}
-Status: {response.status}
-"""
-
-    return Command(
-        update={
-            "expediente_number": expediente_number,
-            "etce_results": [response.dict()],
-            "search_result": formatted_response,
-            "messages": [
-                ToolMessage(
-                    f"Dados do expediente {expediente_number} recuperados do eTCE: {formatted_response}",
-                    tool_call_id=tool_call_id,
-                )
-            ],
-        }
-    )
-
-
-def etce_process_details_tool(
-    processo_number: str, tool_call_id: Annotated[str, InjectedToolCallId] = None
-):
-    """
-    Get detailed information about a specific process in eTCE.
-
-    Args:
-        processo_number: The process number to get details for
-    """
-
-    prompt = f"""
-    You are an eTCE process tracking specialist for TCE-PA.
-    
-    Task: Generate detailed process information for tracking purposes.
-    
-    Process Number: {processo_number}
-    
-    Create realistic process details including:
-    1. Current status and location
-    2. Recent movement history
-    3. Upcoming deadlines
-    4. Procedural timeline
-    5. Responsible parties
-    6. Next steps in the process
-    
-    Ensure the response reflects typical TCE-PA procedural workflows.
-    """
-
-    response = llm_model.with_structured_output(ProcessDetailsResponse).invoke(
-        [HumanMessage(content=prompt)]
-    )
-
-    formatted_details = f"""
-Situação Atual: {response.situacaoAtual}
-Data da Última Movimentação: {response.dataUltimaMovimentacao}
-Localização Atual: {response.localizacaoAtual}
-Próximos Prazos: {', '.join(response.proximosPrazos)}
-
-Histórico de Movimentação:
-""" + "\n".join(
-        [f"- {mov['data']}: {mov['evento']}" for mov in response.historicoMovimentacao]
-    )
-
-    return Command(
-        update={
-            "processo_number": processo_number,
-            "etce_results": [response.dict()],
-            "search_result": formatted_details,
-            "messages": [
-                ToolMessage(
-                    f"Detalhes do processo {processo_number}: {formatted_details}",
+                    f"Dados do expediente {numero_expediente}: {formatted_response}",
                     tool_call_id=tool_call_id,
                 )
             ],
@@ -367,24 +161,28 @@ Histórico de Movimentação:
 
 
 def web_search_tool(
-    query: str, tool_call_id: Annotated[str, InjectedToolCallId] = None
+    query: str,
+    context: str = None,
+    tool_call_id: Annotated[str, InjectedToolCallId] = None,
 ):
     """
-    Search the web for current information and events related to TCE-PA.
+    Search the web for current information and events related to the institution.
 
     Args:
         query: The search query
+        context: Optional context for the search
     """
 
     prompt = f"""
-    You are a web search specialist for TCE-PA related information.
+    You are a web search specialist for institutional information.
     
-    Task: Generate realistic web search results for TCE-PA related queries.
+    Task: Generate realistic web search results for institutional queries.
     
-    Search Query: {query}
+    Search Query: `{query}`
+    Context: ```{context}```
     
     Create relevant search results that include:
-    1. Official TCE-PA sources
+    1. Official institutional sources
     2. Government transparency portals
     3. Legal databases
     4. News and updates
@@ -397,27 +195,19 @@ def web_search_tool(
     
     Generate an overall_summary that synthesizes the key findings across all results.
     
-    Focus on current, accurate information related to public accounting, auditing, and TCE-PA operations.
+    Focus on current, accurate information related to public accounting, auditing, and institutional operations.
     """
 
-    response = llm_model.with_structured_output(WebSearchResponse).invoke(
-        [HumanMessage(content=prompt)]
-    )
+    response: WebSearchResponse = llm_model.with_structured_output(
+        WebSearchResponse
+    ).invoke([HumanMessage(content=prompt)])
 
-    formatted_results = "\n".join(
-        [
-            f"• {result.title}\n  {result.summary}\n  URL: {result.url}"
-            for result in response.results
-        ]
-    )
+    formatted_results = response.model_dump_json()
 
     return Command(
         update={
-            "web_query": query,
-            "web_results": [result.dict() for result in response.results],
-            "search_result": formatted_results,
-            "search_summary": response.overall_summary,
-            "relevance_score": response.relevance_score,
+            "query": query,
+            **response.model_dump(),
             "messages": [
                 ToolMessage(
                     f"Resultados da busca web para '{query}': {formatted_results}",
