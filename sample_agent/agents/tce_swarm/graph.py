@@ -189,6 +189,10 @@ def create_swarm_system():
 print("🚀 Creating Institutional Swarm System...")
 swarm_graph = create_swarm_system()
 
+from langchain_core.runnables.graph import MermaidDrawMethod
+img = swarm_graph.get_graph().draw_mermaid_png(draw_method=MermaidDrawMethod.PYPPETEER)
+with open("docs/tce_swarm/architecture.png", "wb") as f:
+    f.write(img)
 
 # Export the graph for external use
 __all__ = ["swarm_graph", "create_swarm_system"]
