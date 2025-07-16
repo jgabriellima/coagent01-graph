@@ -5,8 +5,8 @@
     "."
   ],
   "graphs": {
-    "tce_swarm": "./sample_agent/agents/tce_swarm/graph.py:swarm_graph",
-    "tce_rag": "./sample_agent/agents/tce_swarm/rag/graph.py:rag_subgraph"
+    "tce_swarm": "./src/agents/graph.py:swarm_graph",
+    "tce_rag": "./src/agents/rag/graph.py:rag_subgraph"
   },
   "env": ".env"
 }

@@ -1,15 +1,14 @@
-# ARQUITETURA TÉCNICA INTEGRADA — CHAT CONTAS TCE-PA
-## Sistema Multi-Agente com Pipeline RAG para Documentos Oficiais
+# ChatContas 2.0 | Arquitetura Multi-Agente com Pipeline RAG para Ingestão e Busca de Documentos Oficiais
 
-**Versão:** 2.0  
-**Data:** Junho 2025
-**Projeto:** Chat Contas TCE-PA
+**Versão:** 1.0  
+**Data:** Junho/2025
+**Projeto:** Chat Contas | TCE-PA
 
 
 ## 1. CONTEXTO E MOTIVAÇÃO
 
 ### 1.1. Desafios Institucionais do TCE-PA
-
+    
 O Tribunal de Contas do Estado do Pará trabalha com um volume considerável de consultas especializadas que apresentam características muito específicas do ambiente jurídico-administrativo. Atualmente, a arquitetura monolítica do ChatContas, embora funcional, apresenta limitações quando precisa lidar com a complexidade e variedade dessas consultas.
 
 O tribunal processa diferentes tipos de demandas que requerem tratamento especializado:
@@ -19,16 +18,16 @@ O tribunal processa diferentes tipos de demandas que requerem tratamento especia
 - **Expedientes**: Processos administrativos e consultas estruturadas
 - **Processos**: Acompanhamento de tramitação com integração direta ao sistema eTCE
 
-A abordagem atual de agente único enfrenta dificuldades significativas nestes cenários. O sistema não consegue compreender adequadamente o contexto jurídico especializado, apresenta limitações técnicas no processamento de documentos estruturados do TCE-PA, e a falta de integração nativa com o eTCE força workarounds que comprometem a experiência do usuário.
+A abordagem atual de **agente único** enfrenta dificuldades significativas nestes cenários. O sistema não consegue compreender adequadamente o **contexto jurídico especializado**, apresenta **limitações técnicas** no processamento de documentos estruturados do TCE-PA.
 
 
 ### 1.2. Necessidades Identificadas
 
-A migração para uma arquitetura multi-agente busca resolver essas limitações através de especialização funcional. Os principais requisitos incluem:
+A migração para uma **arquitetura multi-agente** busca resolver essas limitações através de **especialização funcional**. Os principais requisitos incluem:
 
 **Funcionalidades Necessárias:**
 - Processamento contextual dedicado para documentos oficiais
-- Integração nativa com sistema eTCE (processos/expedientes)  
+- Integração com multiplos sistemas auxiliares, como sistema eTCE (processos/expedientes)  
 - Pipeline de validação de qualidade com retry automático
 - Especialização por tipo de consulta distribuída entre agentes
 
@@ -42,15 +41,28 @@ A migração para uma arquitetura multi-agente busca resolver essas limitações
 
 ## 2. RESUMO EXECUTIVO DA SOLUÇÃO
 
-A versão 2.0 do ChatContas TCE-PA representa uma evolução significativa da arquitetura atual. Migramos de um sistema monolítico baseado em agente único para uma arquitetura multi-agente implementada com LangGraph, especificamente desenhada para atender as complexidades operacionais do Tribunal de Contas do Estado do Pará. 
+A versão 2.0 do ChatContas TCE-PA representa uma **evolução significativa** da arquitetura atual. Migramos de um **sistema monolítico** baseado em agente único para uma **arquitetura multi-agente** implementada com **LangGraph**, especificamente desenhada para atender as complexidades operacionais do Tribunal de Contas do Estado do Pará. 
 
-A nova abordagem organiza três agentes especializados em uma arquitetura swarm, onde cada componente possui expertise específica mas mantém capacidade de resposta autônoma. Esta estrutura elimina os gargalos da arquitetura anterior ao distribuir responsabilidades de forma inteligente, permitindo que cada agente trabalhe dentro de sua área de competência.
+A nova abordagem organiza **três agentes especializados** em uma **arquitetura swarm**, onde cada componente possui **expertise específica** mas mantém **capacidade de resposta autônoma**. Esta estrutura elimina os **gargalos da arquitetura anterior** ao distribuir responsabilidades de forma inteligente, permitindo que cada agente trabalhe dentro de sua área de competência.
 
 ### 2.1. Características Fundamentais
 
-O sistema implementa coordenação distribuída entre os três agentes especializados, onde cada um pode processar consultas de forma independente quando possui a expertise necessária. O pipeline RAG foi redesenhado como um agente dedicado, oferecendo processamento completo de documentos com retry automático para garantir qualidade. 
+O sistema implementa **coordenação distribuída** entre os três agentes especializados, onde cada um pode processar consultas de forma independente quando possui a **expertise necessária**. As principais inovações incluem:
 
-Os handoffs entre agentes funcionam de forma opcional e inteligente, transferindo controle apenas quando necessário para aproveitamento de expertise específica. O processamento de documentos integra as bibliotecas Docling e Chonkie, criando uma pipeline otimizada para documentos oficiais do TCE-PA. Todo o sistema incorpora validação de qualidade com score mínimo definido e retry automático quando necessário.
+**Arquitetura Distribuída:**
+- Coordenação inteligente entre agentes especializados
+- Autonomia de resposta sem necessidade de consolidação central
+- Pipeline RAG redesenhado como agente dedicado
+
+**Sistema de Handoffs Inteligente:**
+- Transferência opcional baseada em necessidade específica
+- Aproveitamento de expertise especializada quando necessário
+- Handoffs bidirecionais que preservam contexto completo
+
+**Processamento Avançado:**
+- Integração Docling + Chonkie para documentos oficiais do tribunal
+- Validação de qualidade com score mínimo definido
+- Retry automático para garantir qualidade das respostas
 
 ### 2.2. Componentes da Arquitetura
 
@@ -71,13 +83,21 @@ A estrutura se organiza em torno de três agentes principais com responsabilidad
 - `web_search_tool`: Busca web focada em informações institucionais
 - `human_in_the_loop`: Intervenção humana para casos ambíguos
 
-Todas as ferramentas utilizam contratos estruturados Pydantic para output consistente. O sistema de templates implementa base modular Jinja2 com blocos dinâmicos por agente, enquanto a gestão de estado utiliza hierarquia com SwarmState para coordenação geral, RAGState para pipeline especializado, e SearchAgentState para funcionalidades de busca.
+Todas as ferramentas utilizam **contratos estruturados Pydantic** para output consistente. O sistema de templates implementa **base modular Jinja2** com **blocos dinâmicos por agente**, enquanto a gestão de estado utiliza hierarquia com **SwarmState** para coordenação geral, **RAGState** para pipeline especializado, e **SearchAgentState** para funcionalidades de busca.
 
 ### 2.3. Estratégia de Migração
 
-A transição da arquitetura monolítica para multi-agente preserva toda funcionalidade existente enquanto adiciona capacidades especializadas. O Main Agent mantém compatibilidade com consultas gerais que hoje funcionam bem no sistema atual. O RAG Agent encapsula e melhora significativamente o processamento de documentos que apresentava limitações na versão anterior. O Search Agent adiciona capacidades novas de integração com eTCE que eram limitadas na arquitetura monolítica.
+A transição da **arquitetura monolítica** para **multi-agente** preserva toda **funcionalidade existente** enquanto adiciona **capacidades especializadas**:
 
-Esta abordagem garante que a migração seja incremental e controlada, minimizando riscos operacionais enquanto entrega melhorias substanciais na qualidade e capacidade de resposta do sistema.
+**Preservação de Funcionalidades:**
+- **Main Agent**: Mantém compatibilidade com consultas gerais que funcionam bem hoje
+- **RAG Agent**: Encapsula e melhora processamento de documentos com limitações atuais
+- **Search Agent**: Adiciona capacidades de integração eTCE antes limitadas
+
+**Benefícios da Migração:**
+- Migração incremental e controlada minimizando riscos operacionais
+- Melhorias substanciais na qualidade e capacidade de resposta
+- Adição de expertise especializada sem perda de funcionalidade atual
 
 ---
 
@@ -87,8 +107,9 @@ Esta abordagem garante que a migração seja incremental e controlada, minimizan
 
 #### 3.1.1. O que é Arquitetura Multi-Agente?
 
-**Arquitetura Multi-Agente** é um paradigma de design de sistemas onde múltiplos agentes autônomos especializados colaboram para resolver problemas complexos que seriam difíceis ou ineficientes para um agente único processar. Cada agente possui:
+**Arquitetura Multi-Agente** é um paradigma de design onde **múltiplos agentes autônomos especializados** colaboram para resolver **problemas complexos** que seriam difíceis ou ineficientes para um agente único processar. 
 
+**Características Fundamentais:**
 - **Autonomia**: Capacidade de operar independentemente
 - **Especialização**: Foco em domínio específico de conhecimento/ferramentas
 - **Colaboração**: Habilidade de transferir tarefas e compartilhar contexto
@@ -98,33 +119,33 @@ Esta abordagem garante que a migração seja incremental e controlada, minimizan
 
 Considerando os **desafios institucionais identificados** na Seção 1, a arquitetura multi-agente resolve limitações específicas:
 
-**🎯 Mapeamento Problema → Solução:**
+**Mapeamento Problema → Solução:**
 
 | **Limitação Tradicional** | **Solução Multi-Agente** | **Agente Responsável** |
 |---------------------------|--------------------------|----------------------|
 | Contexto jurídico especializado | Pipeline RAG dedicado para documentos oficiais | **RAG Agent** |
-| Integração sistema eTCE | Tools específicas para processos/expedientes | **Search Agent** |
+| Integração sistema eTCE e Busca especializada| Tools específicas para processos/expedientes e Busca na Web| **Search Agent** |
 | Coordenação de tarefas complexas | Roteamento inteligente e handoffs | **Main Agent** |
 | Escalabilidade especializada | Adição modular de novos agentes | **Arquitetura Swarm** |
 
 #### 3.1.3. Princípios de Design Aplicados
 
-**🏗️ Especialização Funcional:**
+**Especialização Funcional:**
 - Cada agente domina ferramentas e conhecimento específico
 - Evita sobreposição de responsabilidades
 - Otimiza performance por domínio
 
-**🔄 Handoffs Opcionais:**
+**Handoffs Opcionais:**
 - Transferência baseada em necessidade, não obrigatória
 - Agentes podem responder diretamente quando competentes
 - Melhora eficiência evitando transferências desnecessárias
 
-**📊 Estado Distribuído:**
+**Estado Distribuído:**
 - Contexto da conversa preservado através das transferências
 - Informações compartilhadas conforme necessidade
 - Garante continuidade da experiência do usuário
 
-**⚙️ Autonomia Responsável:**
+**Autonomia Responsável:**
 - Cada agente decide quando pode responder diretamente
 - Transfere controle apenas quando detecta limitação própria
 - Reduz latência e melhora experiência
@@ -136,7 +157,7 @@ Com os **fundamentos conceituais** estabelecidos, apresentamos a **visão geral 
 ```mermaid
 graph TB
     subgraph "Sistema Multi-Agente TCE-PA"
-        USER[👤 Usuário]
+        USER[Usuário]
         
         subgraph "Camada de Coordenação"
             ROUTER[Active Agent Router]
@@ -193,14 +214,14 @@ graph TB
     SEARCH --> HITL
 ```
 
-**📋 Componentes Principais Visualizados:**
+**Componentes Principais Visualizados:**
 
 - **Camada de Coordenação**: Router inteligente + Main Agent para gerenciar fluxo
 - **Agentes Especializados**: RAG (documentos) + Search (sistemas) com domínios distintos
 - **Pipeline RAG**: Processamento completo com validação de qualidade
 - **Tools Implementadas**: 4 ferramentas especializadas com structured output
 - **Handoffs Opcionais**: Transferência bidirecional baseada em necessidade
-- **Sistemas Externos**: Integração nativa com eTCE, Vector DB e Web
+- **Sistemas Externos**: Integração nativa eTCE, Vector DB e Web
 
 As seções seguintes detalham a **implementação técnica** destes componentes e como eles colaboram para resolver consultas complexas do TCE-PA.
 
@@ -275,11 +296,11 @@ Com a **arquitetura multi-agente estabelecida** na Seção 3, precisamos agora c
 
 #### 4.1.1. Visão Geral das 5 Engenharias
 
-**🏗️ Por que Múltiplas Engenharias?**
+**Por que Múltiplas Engenharias?**
 
 Sistemas multi-agente requerem **decomposição especializada** porque diferentes aspectos da arquitetura têm naturezas e requisitos fundamentalmente distintos. Cada engenharia atua como uma **camada de abstração** que resolve preocupações específicas:
 
-**🔗 Flow de Construção das Engenharias:**
+**Flow de Construção das Engenharias:**
 
 1. **State** → Define **o que** precisa ser mantido e compartilhado
 2. **Flow** → Define **como** as execuções coordenam e progridem  
@@ -287,33 +308,32 @@ Sistemas multi-agente requerem **decomposição especializada** porque diferente
 4. **Tooling** → Define **onde** buscar informações além do conhecimento base
 5. **Handoff** → Define **quando** transferir controle entre especializações
 
-**🧠 Fundamentação Teórica:**
+**Fundamentação Teórica:**
 
-Cada uma dessas questões fundamentais (**o que, como, por que, onde, quando**) representa um **domínio de conhecimento arquitetural** distinto que requer abordagens, ferramentas e padrões específicos. Esta decomposição segue princípios de **engenharia de software** onde **complexidade é gerenciada através de abstrações especializadas**.
+Cada uma dessas questões fundamentais (o que, como, por que, onde, quando) representa um domínio de conhecimento arquitetural distinto que requer abordagens, ferramentas e padrões específicos. Esta decomposição segue princípios de engenharia de software onde complexidade é gerenciada através de abstrações especializadas.
 
-A tabela abaixo demonstra como estas questões abstratas se materializam em **preocupações arquiteturais concretas** e os **benefícios sistêmicos** que emergem quando cada domínio é adequadamente endereçado:
+A tabela abaixo demonstra como estas questões se materializam em preocupações arquiteturais concretas e os benefícios sistêmicos resultantes:
 
 | **Engenharia** | **Preocupação Arquitetural** | **Benefício Sistêmico** |
 |----------------|------------------------------|------------------------|
-| **🗃️ State** | Consistência de dados distribuídos | Coerência entre especializações |
-| **🔄 Flow** | Coordenação temporal de execuções | Robustez e recuperação automática |
-| **🧠 Prompt** | Comportamentos contextuais especializados | Qualidade e consistência de output |
-| **🛠️ Tooling** | Expansão de capacidades além do core | Integração com sistemas externos |
-| **🤝 Handoff** | Otimização de transferência de controle | Eficiência e expertise adequada |
+| **State** | Consistência de dados distribuídos | Coerência entre especializações |
+| **Flow** | Coordenação temporal de execuções | Robustez e recuperação automática |
+| **Prompt** | Comportamentos contextuais especializados | Qualidade e consistência de output |
+| **Tooling** | Expansão de capacidades além do core | Integração com sistemas externos |
+| **Handoff** | Otimização de transferência de controle | Eficiência e expertise adequada |
 
 #### 4.1.2. Integração entre as Engenharias
 
-As 5 engenharias **operam como um sistema integrado** onde cada uma fornece fundações para as outras:
+As **cinco engenharias** operam como um **sistema integrado** onde cada uma fornece fundações para as outras:
 
-**🔗 Dependências Arquiteturais:**
-
+**Dependências Arquiteturais:**
 - **State** ← **Flow**: Flows lêem/modificam state conforme progressão
 - **Flow** ← **Prompt**: Diferentes prompts geram diferentes paths de execução  
 - **Prompt** ← **Tooling**: Tools disponíveis influenciam instruções comportamentais
 - **Tooling** ← **Handoff**: Handoffs transferem tanto state quanto tool context
 - **Handoff** ← **State**: Decisões de transferência baseadas em state analysis
 
-**⚙️ Exemplo de Fluxo Integrado Genérico:**
+**Fluxo Integrado Típico:**
 1. **State**: Request inicial e contexto armazenados em estrutura compartilhada
 2. **Flow**: Sistema determina sequência de processamento e conditional paths
 3. **Prompt**: Instruções específicas carregadas conforme agente/contexto
@@ -322,21 +342,16 @@ As 5 engenharias **operam como um sistema integrado** onde cada uma fornece fund
 
 #### 4.1.3. Benefícios da Abordagem Estruturada
 
-**📊 Vantagens Arquiteturais:**
+Esta decomposição em engenharias especializadas oferece vantagens arquiteturais significativas:
 
+**Vantagens Principais:**
 - **Separation of Concerns**: Cada engenharia resolve preocupações distintas e bem definidas
 - **Modularidade**: Componentes podem evoluir independentemente sem afetar outros
 - **Debuggability**: Problemas isoláveis por domínio específico (state vs flow vs prompt)
 - **Reusabilidade**: Padrões estabelecidos aplicáveis a novos agentes especializados
 - **Composição**: Engenharias combinam de forma emergente para capabilities complexas
 
-**🏗️ Filosofia de Design:**
-
-Esta decomposição segue o princípio de que **arquiteturas robustas emergem de abstrações bem definidas** que colaboram em vez de competir por responsabilidades.
-
-**🎯 Preparação para Detalhamento:**
-
-As seções seguintes detalham **a implementação técnica** de cada engenharia, demonstrando como os conceitos universais se materializam em implementações concretas.
+A **filosofia de design** segue o princípio de que **arquiteturas robustas** emergem de **abstrações bem definidas** que colaboram em vez de competir por responsabilidades. As seções seguintes detalham a **implementação técnica** de cada engenharia, demonstrando como os conceitos universais se materializam em implementações concretas.
 
 ---
 
@@ -346,8 +361,10 @@ As seções seguintes detalham **a implementação técnica** de cada engenharia
 
 #### 4.2.1. Por que Estado é Crítico?
 
-**🎯 Desafios Específicos:**
-- **Contexto Preservado**: Conversas não podem "esquecer" informações anteriores
+Em **sistemas multi-agente**, o **gerenciamento de estado** apresenta **desafios únicos** que não existem em **arquiteturas monolíticas**:
+
+**Desafios Específicos:**
+- **Contexto Preservado**: Conversas não podem "esquecer" informações anteriores ( estruturadas e não-estruturadas)
 - **Estado Distribuído**: Diferentes agentes precisam acessar dados relevantes
 - **Performance**: Estado deve ser eficiente para transferências frequentes
 - **Consistency**: Dados sempre atualizados e sincronizados
@@ -400,8 +417,6 @@ classDiagram
 
 #### 4.2.4. Estado RAGState - Pipeline Especializado
 
-**50+ campos organizados em 9 categorias**:
-
 ##### **Query Processing**
 | Campo | Propósito | Setado Em | Usado Em | Exemplo |
 |-------|-----------|-----------|----------|---------|
@@ -431,12 +446,12 @@ classDiagram
 
 ##### **Tipos de Transição Implementados**
 
-**🔄 State Propagation (Main ↔ Search):**
+**State Propagation (Main ↔ Search):**
 - **SwarmState mantido intacto** durante transferência
 - **Contexto completo preservado** (messages, active_agent)
 - **SearchAgentState fields adicionados** conforme processamento
 
-**⚙️ Task-Specific Conversion (Main → RAG):**
+**Task-Specific Conversion (Main → RAG):**
 - **SwarmState convertido para RAGState** para processamento especializado
 - **Pipeline sequencial** com 50+ campos específicos de RAG
 - **Reconversão para SwarmState** ao final com AIMessage integrada
@@ -468,21 +483,21 @@ sequenceDiagram
 
 ##### **Detalhamento Técnico das Transições**
 
-**📊 Path 1: Main → RAG (Task-Specific Conversion)**
+**Path 1: Main → RAG (Task-Specific Conversion)**
 1. **Input**: SwarmState com `query` e `active_agent="Main_Agent"`
 2. **Conversion**: Sistema cria novo RAGState com campos especializados
 3. **Pipeline**: RAG executa 11 nós sequenciais (setup → retrieval → generation → validation)
 4. **Output**: RAGState convertido de volta para SwarmState + AIMessage final
 5. **Result**: UI recebe resposta direta sem retornar ao Main Agent
 
-**🔄 Path 2: Main → Search (State Propagation)**
+**Path 2: Main → Search (State Propagation)**
 1. **Input**: SwarmState preservado com contexto completo
 2. **Enhancement**: SearchAgentState fields adicionados (etce_responses, web_results)
 3. **Processing**: Tools específicas executadas com structured output
 4. **Update**: SwarmState enriquecido com dados de sistema/web
 5. **Result**: UI recebe SwarmState atualizado com informações integradas
 
-**⚙️ Características Críticas:**
+**Características Críticas:**
 - **No Return Path**: Agentes respondem diretamente, evitando round-trips desnecessários
 - **Specialized Context**: Cada agente acessa exatamente os dados que precisa
 - **State Consistency**: Transformações garantem que nenhuma informação crítica seja perdida
@@ -494,7 +509,7 @@ sequenceDiagram
 
 #### 4.3.1. Por que Fluxos Estruturados?
 
-**🎯 Necessidades Específicas:**
+**Necessidades Específicas:**
 - **Coordenação Multi-Agente**: Múltiplos agentes precisam trabalhar de forma orquestrada
 - **Retry Logic**: Falhas devem ser tratadas com tentativas automáticas
 - **Conditional Paths**: Diferentes tipos de query seguem caminhos específicos
@@ -506,12 +521,12 @@ O **Fluxo Principal** representa a **orchestração de alto nível** do sistema 
 
 ##### **Características do Fluxo Principal:**
 
-**🎯 Entrada Única, Múltiplos Caminhos:**
+**Entrada Única, Múltiplos Caminhos:**
 - **Active Agent Router** determina ponto de entrada (padrão: Main Agent)
 - **Autonomous Response**: Cada agente pode responder diretamente ao usuário
 - **Optional Handoffs**: Transferência baseada em análise de necessidade
 
-**⚙️ Padrões de Execução:**
+**Padrões de Execução:**
 - **Direct Response**: Agente processa e responde imediatamente
 - **Handoff Response**: Agente transfere para especialização e especialista responde
 - **No Return Loops**: Evita ping-pong desnecessário entre agentes
@@ -556,20 +571,20 @@ flowchart TD
 
 ##### **Detalhamento Técnico dos Caminhos:**
 
-**🔄 Caminho 1: Entry via Router**
+**Caminho 1: Entry via Router**
 - **Default Route** → Main Agent (coordenação geral)
 - **Direct Route** → RAG/Search Agent (quando expertise específica conhecida)
 
-**🎯 Caminho 2: Main Agent Decision Points**
+**Caminho 2: Main Agent Decision Points**
 - **Direct Response**: Query geral institucional → Main responde imediatamente
 - **RAG Handoff**: Legislação/acordão detectado → Transfere para expertise documental
 - **Search Handoff**: Expediente/processo detectado → Transfere para expertise sistêmica
 
-**⚙️ Caminho 3: Specialized Processing**
+**Caminho 3: Specialized Processing**
 - **RAG Pipeline**: Execução sequencial completa (11 nós) → Response direta
 - **Search Tools**: Execução paralela de tools eTCE/web → Response estruturada
 
-**📊 Características de Performance:**
+**Características de Performance:**
 - **No Return Overhead**: Especialistas respondem diretamente ao usuário
 - **Smart Routing**: Decisões baseadas em análise de conteúdo, não configuração estática
 - **Parallel Capability**: RAG e Search podem operar simultaneamente quando necessário
@@ -580,12 +595,12 @@ O **Pipeline RAG** representa um **grafo de execução sequencial especializado*
 
 ##### **Arquitetura do Pipeline:**
 
-**🔗 Execução Sequencial com Branches:**
+**Execução Sequencial com Branches:**
 - **11 nós principais** conectados por conditional edges
 - **3 pontos de decisão** que determinam caminhos alternativos
 - **Retry logic** integrada com limite máximo de tentativas
 
-**⚙️ Padrões de Controle:**
+**Padrões de Controle:**
 - **Setup Phase**: Preparação de recursos (Vector DB, análise)
 - **Conditional Ingestion**: Ingestão apenas quando necessária
 - **Retrieval & Grading**: Busca híbrida + avaliação de relevância
@@ -634,25 +649,25 @@ flowchart TD
 
 ##### **Detalhamento Técnico dos Nós:**
 
-**🔧 Setup Phase (Nós 1-3):**
+**Setup Phase (Nós 1-3):**
 - **Vector DB Setup**: Inicialização de conexões e collections vetoriais
 - **Query Analysis**: Classificação de query e otimização para busca
 - **Ingestion Check**: Decisão condicional baseada em `ingestion_required` flag
 
-**📊 Processing Phase (Nós 4-7):**
+**Processing Phase (Nós 4-7):**
 - **Chunk Strategy**: Seleção de estratégia de chunking (Chonkie/traditional)
 - **Document Ingestion**: Pipeline Docling → Chunking → Vector Storage
 - **Document Retrieval**: Busca híbrida (semântica + keyword) no vector database
 - **Relevance Grading**: Avaliação de relevância dos chunks retrieved
 
-**🔄 Quality Control Phase (Nós 8-13):**
+**Quality Control Phase (Nós 8-13):**
 - **Query Rewrite Loop**: Otimização iterativa da query quando relevância baixa
 - **Context Enrichment**: Enriquecimento de contexto com metadata adicional
 - **Reranking**: Reordenação multi-critério dos chunks mais relevantes
 - **Response Generation**: Geração de resposta com citações estruturadas
 - **Quality Validation**: Score mínimo 0.7 com retry automático até limite
 
-**⚙️ Características de Robustez:**
+**Características de Robustez:**
 - **Conditional Branching**: 3 pontos de decisão que adaptam o fluxo conforme necessidade
 - **Automatic Retry**: Retry logic para quality score < 0.7 até máximo de tentativas
 - **Graceful Degradation**: Sistema prossegue mesmo com qualidade subótima após max retries
@@ -664,13 +679,13 @@ flowchart TD
 
 ##### **Por que Conditional Edges são Fundamentais?**
 
-**🎯 Tomada de Decisão Dinâmica:**
+**Tomada de Decisão Dinâmica:**
 - **Adaptação ao Contexto**: Fluxo muda baseado em dados específicos (qualidade, flags, contadores)
 - **Otimização de Performance**: Evita execução desnecessária (ex: pular ingestão se dados já existem)
 - **Robustez**: Permite retry logic e graceful degradation em falhas
 - **Inteligência**: Sistema "decide" o melhor caminho baseado em análise do estado
 
-**🔀 Tipos de Rotas Condicionais no Pipeline:**
+**Tipos de Rotas Condicionais no Pipeline:**
 
 1. **Conditional Ingestion**: `ingestion_required` → Ingere documentos apenas se necessário
 2. **Quality-based Retry**: `quality_score` → Retry até atingir threshold ou limite máximo  
@@ -708,21 +723,21 @@ def quality_check_decision(state: RAGState) -> str:
 
 ##### **Características Técnicas dos Conditional Edges:**
 
-**⚙️ Padrões de Decisão Implementados:**
+**Padrões de Decisão Implementados:**
 
 - **Binary Choice** (`needs_ingestion_decision`): Simples true/false baseado em flag booleana
 - **Threshold-based** (`quality_check_decision`): Comparação numérica com limite definido (0.7)
 - **Counter-based** (`quality_check_decision`): Lógica de retry com limite máximo de tentativas  
 - **Graceful Fallback**: Sempre retorna valor válido, mesmo em edge cases
 
-**🔄 Implicações no Fluxo do Grafo:**
+**Implicações no Fluxo do Grafo:**
 
 - **Dynamic Branching**: Mesmo input inicial pode seguir paths completamente diferentes
 - **State-Driven**: Decisões baseadas em estado acumulado, não configuração estática  
 - **Idempotency**: Funções determinísticas - mesmo estado sempre produz mesma decisão
 - **Performance**: Elimina nós desnecessários, otimizando tempo total de execução
 
-**📊 Vantagens Arquiteturais:**
+**Vantagens Arquiteturais:**
 
 - **Maintainability**: Lógica de decisão centralizada em funções específicas
 - **Testability**: Cada função de decisão testável independentemente  
@@ -735,7 +750,7 @@ def quality_check_decision(state: RAGState) -> str:
 
 #### 4.4.1. O Problema dos Prompts Estáticos
 
-**⚠️ Limitações Tradicionais:**
+**Limitações Tradicionais:**
 - **Contexto Fixo**: Prompts não se adaptam ao estado atual do sistema
 - **Informação Desatualizada**: Instruções podem estar fora de contexto para situação específica
 - **One-Size-Fits-All**: Mesmo prompt para diferentes cenários de execução
@@ -743,11 +758,11 @@ def quality_check_decision(state: RAGState) -> str:
 
 #### 4.4.2. Solução: Dynamic Prompt Generation via Pre-hooks
 
-**🎯 Abordagem Inovadora:**
+**Abordagem Inovadora:**
 
 O ChatContas utiliza **pre-hooks** no `create_react_agent` que **interceptam a execução** antes do agente processar e **reconstroem dinamicamente** o system prompt baseado no **state atual do grafo**. Esta técnica garante que cada agente sempre receba contexto **perfeitamente alinhado** com o estado corrente do workflow.
 
-**🏗️ Componentes da Arquitetura:**
+**Componentes da Arquitetura:**
 
 1. **Template Base** (`base_agent_prompt.jinja2`): Estrutura fixa com placeholders dinâmicos
 2. **State Extractor**: Pre-hook que extrai dados relevantes do estado atual
@@ -759,18 +774,18 @@ O ChatContas utiliza **pre-hooks** no `create_react_agent` que **interceptam a e
 ```jinja2
 # CURRENT_DATETIME: {{ current_datetime }}
 
-## 👤 Identity
+## Identity
 You are {{ agent_identity }}.
 
-## 🎯 Responsibilities
+## Responsibilities
 {% for item in responsibilities %}
 - {{ item }}
 {% endfor %}
 
-## 🧠 Behavior Rules
+## Behavior Rules
 {{ dynamic_block }}
 
-## 🛠️ Tools Available
+## Tools Available
 {% for tool in tools %}
 - `{{ tool.name }}` → {{ tool.description }}
 {% endfor %}
@@ -814,7 +829,7 @@ sequenceDiagram
     A->>G: Return response to graph
 ```
 
-**🔧 Core Implementation - Pre-Hook & Render:**
+**Core Implementation - Pre-Hook & Render:**
 
 ```python
 def _compose_pre_hooks(self) -> RunnableLambda:
@@ -861,26 +876,26 @@ def _render_prompt(self, state: dict) -> str:
 ```mermaid
 graph TD
     subgraph "AgentBuilder Components"
-        CONFIG[Agent Configuration<br/>• name, identity<br/>• responsibilities<br/>• constraints]
-        TEMPLATES[Template System<br/>• base_agent_prompt.jinja2<br/>• dynamic_block_template<br/>• state placeholders]
-        TOOLS[Tool System<br/>• tools list<br/>• tool metadata extraction<br/>• _extract_tool_infos()]
-        HOOKS[Pre-Hook System<br/>• additional_pre_hooks<br/>• compose chain<br/>• state processing]
+        CONFIG("Agent Configuration: name, identity, responsibilities, constraints")
+        TEMPLATES("Template System: base_agent_prompt.jinja2, dynamic_block_template, state placeholders")
+        TOOLS("Tool System: tools list, tool metadata extraction, _extract_tool_infos()")
+        HOOKS("Pre-Hook System: additional_pre_hooks, compose chain, state processing")
     end
     
     subgraph "Build Process"
-        BUILD[AgentBuilder.build()]
-        BIND[Model Tool Binding<br/>bound_model = model.bind_tools()]
-        COMPOSE[Pre-Hook Composition<br/>pre_hook = _compose_pre_hooks()]
-        CREATE[create_react_agent()]
+        BUILD("AgentBuilder.build()")
+        BIND("Model Tool Binding: bound_model = model.bind_tools()")
+        COMPOSE("Pre-Hook Composition: pre_hook = _compose_pre_hooks()")
+        CREATE("create_react_agent()")
     end
     
     subgraph "Runtime Execution"
-        GRAPH[Graph Execution]
-        STATE[Current State]
-        PREHOOK[Pre-Hook Execution]
-        RENDER[Template Rendering]
-        INJECT[Prompt Injection]
-        AGENT[Agent Processing]
+        GRAPH("Graph Execution")
+        STATE("Current State")
+        PREHOOK("Pre-Hook Execution")
+        RENDER("Template Rendering")
+        INJECT("Prompt Injection")
+        AGENT("Agent Processing")
     end
     
     CONFIG --> BUILD
@@ -906,6 +921,7 @@ graph TD
     class CONFIG,TEMPLATES,TOOLS,HOOKS configNode
     class BUILD,BIND,COMPOSE,CREATE buildNode
     class GRAPH,STATE,PREHOOK,RENDER,INJECT,AGENT runtimeNode
+
 ```
 
 ##### **Create React Agent - Setup Final:**
@@ -936,18 +952,18 @@ def build(self) -> CompiledStateGraph:
 
 ##### **Características Inovadoras da Implementação:**
 
-**🎯 Dynamic Configuration Assembly:**
+**Dynamic Configuration Assembly:**
 - **Components → Build Process**: Configuração, templates, tools e hooks se consolidam no `build()`
 - **Runtime Integration**: Pre-hooks executam automaticamente a cada ativação do agente
 - **State-driven Adaptation**: Template renderizado dinamicamente baseado no estado corrente
 
-**⚙️ Vantagens Arquiteturais:**
+**Vantagens Arquiteturais:**
 - **Separation of Concerns**: Configuração, rendering e execução bem separados
 - **Reusability**: Mesmo AgentBuilder cria diferentes tipos de agentes especializados
 - **Maintainability**: Template base facilita updates globais de comportamento
 - **Testability**: Pre-hooks e rendering testáveis independentemente
 
-**🚀 Resultado Final:**
+**Resultado Final:**
 Todo agente construído via **AgentBuilder** recebe automaticamente:
 - **System prompt adaptativo** que reflete estado atual do workflow
 - **Context awareness** temporal e situacional
@@ -961,13 +977,13 @@ Todo agente construído via **AgentBuilder** recebe automaticamente:
 
 #### 4.5.1. Por que Tools Especializadas?
 
-**🎯 Limitações dos LLMs Base:**
+**Limitações dos LLMs Base:**
 - **Dados Dinâmicos**: Informações em tempo real (processos, expedientes)
 - **Sistemas Proprietários**: Integração com eTCE institucional
 - **Structured Output**: Respostas padronizadas para integração sistêmica
 - **Human-in-the-Loop**: Intervenção humana para casos ambíguos
 
-**🏗️ Padrão Implementado**: Todas as tools seguem **Command Pattern** com Pydantic para structured output.
+**Padrão Implementado**: Todas as tools seguem **Command Pattern** com Pydantic para structured output.
 
 #### 4.5.2. Inventário Completo de Tools
 
@@ -980,26 +996,8 @@ Todo agente construído via **AgentBuilder** recebe automaticamente:
 | `etce_expedientes_info_tool` | Search | `numero_expediente: str` | Consulta dados expediente TCE-PA | `EtceExpedienteResponse` |
 | `web_search_tool` | Search | `query: str, context: str` | Busca web institucional | `WebSearchResponse` |
 
-##### **Main Agent Tools**
-```python
-tools = [human_in_the_loop]
-if handoff_tools:
-    tools.extend(handoff_tools)  # rag_agent_handoff, search_agent_handoff
-```
 
-##### **Search Agent Tools**
-```python
-tools = [
-    etce_processos_info_tool,     # Consulta processos TC/XXXXXX/YYYY
-    etce_expedientes_info_tool,   # Consulta expedientes EXP-YYYY-XXXXX  
-    web_search_tool,              # Busca web institucional
-    human_in_the_loop,            # Esclarecimentos e intervenção humana
-]
-```
-
-#### 4.5.3. Command Pattern no LangGraph - State Update Mechanism
-
-**🎯 Como Tools Executam Ações e Atualizam States:**
+#### 4.5.3. Command Pattern no LangGraph: Mecanismo para atualizaçao do estado do workflow
 
 No LangGraph, tools implementam **Command Pattern** onde cada tool execution pode **disparar ações** e **atualizar states** de forma controlada. Este mecanismo permite que tools não apenas retornem dados, mas **modifiquem o estado** tanto do agente chamador quanto do **parent state** (no caso de handoffs).
 
@@ -1033,81 +1031,26 @@ graph TD
     F --> J
 ```
 
-##### **Tipos de State Updates:**
 
-**🔄 1. Local Agent State Update:**
-```python
-# Tool atualiza estado local do agente que a chamou
-def etce_processos_info_tool(state, numero_processo: str):
-    resultado = consultar_processo(numero_processo)
-    # Atualiza context local do agente
-    state.tool_results.append(resultado)
-    return EtceProcessoResponse(**resultado)
-```
+##### **Implementação do Padrão Command**
 
-**🔄 2. Parent State Update (Handoffs):**
-```python
-# Tool dispara handoff e atualiza SwarmState parent
-def rag_agent_handoff(state, query: str, context: str):
-    # Atualiza SwarmState para próximo agente
-    return {
-        "next_agent": "rag_agent",
-        "rag_query": query,
-        "rag_context": context,
-        "handoff_reason": "Necessita busca em documentos"
-    }
-```
+O **ChatContas** implementa o padrão Command através de uma arquitetura onde cada ferramenta atua como um **comando encapsulado** que pode tanto executar ações específicas quanto **modificar o estado do sistema** de forma controlada. Esta abordagem resolve o desafio fundamental de sistemas multi-agente onde **múltiplas especializações** precisam atualizar **estados compartilhados** sem criar inconsistências.
 
-**🔄 3. Dual Update (Local + Parent):**
-```python
-# Tool atualiza tanto agent local quanto parent state
-def web_search_tool(state, query: str, context: str):
-    resultados = realizar_busca_web(query, context)
-    
-    # Update local: adiciona aos resultados do agente
-    state.search_results.extend(resultados.web_results)
-    
-    # Update parent: disponibiliza para outros agentes
-    return {
-        "web_search_results": resultados,
-        "search_completed": True,
-        "last_search_query": query
-    }
-```
+A estrutura fundamental do padrão organiza-se em torno de **quatro componentes principais**: a **interface de comando** define a assinatura da ferramenta com seus parâmetros de entrada; o **comando concreto** representa a implementação específica de cada tool; o **receptor** corresponde ao objeto de estado que será modificado; e o **invocador** é o agente que executa a chamada da ferramenta.
 
-##### **Command Pattern Implementation:**
+**Fluxo de Execução Integrado:**
 
-**🏗️ Estrutura do Command:**
-- **Command Interface**: Signature da tool (input parameters)
-- **Concrete Command**: Implementação específica da tool
-- **Receiver**: State object que será modificado
-- **Invoker**: Agent que executa a tool call
+O fluxo de execução segue uma sequência bem definida onde o **agente analisa o contexto** e decide qual ferramenta chamar baseado na necessidade específica. O **LangGraph então despacha** a chamada da ferramenta com os parâmetros apropriados, permitindo que a tool **acesse tanto o estado local** quanto o estado pai conforme necessário. A ferramenta **executa sua ação específica** (consulta ao eTCE, busca web, handoff) e **modifica o estado** de acordo com o tipo de atualização requerida. Finalmente, a tool **retorna uma resposta estruturada** seguindo o contrato definido, e o LangGraph **propaga as atualizações** para os estados apropriados.
 
-**⚙️ Execution Flow:**
-1. **Agent Decision**: Agente decide chamar tool baseado em context
-2. **Command Dispatch**: LangGraph dispatcha tool call com parameters
-3. **State Access**: Tool recebe acesso ao state atual (local + parent)
-4. **Action Execution**: Tool executa ação (consulta, busca, handoff)
-5. **State Modification**: Tool modifica state conforme tipo de update
-6. **Structured Response**: Tool retorna response no contrato definido
-7. **State Propagation**: LangGraph propaga updates para states apropriados
+**Vantagens do Gerenciamento de Estado:**
 
-##### **Vantagens do Command Pattern:**
+Esta implementação oferece **atualizações controladas** onde as ferramentas modificam o estado de forma auditável e determinística, garantindo **segurança de tipos** através de contratos estruturados Pydantic que validam automaticamente todas as modificações. O sistema mantém **isolamento** adequado onde cada ferramenta tem escopo específico de modificação, evitando interferências indesejadas, além de oferecer **capacidade de reversão** onde estados podem ser revertidos em caso de erro ou falha.
 
-**🎯 State Management:**
-- **Controlled Updates**: Tools modificam state de forma controlada e auditável
-- **Type Safety**: Updates seguem contratos estruturados (Pydantic)
-- **Isolation**: Cada tool tem escopo específico de modificação
-- **Rollback Capability**: States podem ser revertidos em caso de erro
-
-**🔄 Multi-Level Updates:**
-- **Local Scope**: Tools podem manter context específico do agente
-- **Global Scope**: Tools podem compartilhar dados entre agentes via parent state
-- **Specialized Scope**: Tools podem atualizar states especializados (RAGState)
+O padrão também permite **atualizações em múltiplos níveis**: ferramentas podem manter **contexto específico do agente** para informações locais, **compartilhar dados entre agentes** via estado pai para coordenação geral, e **atualizar estados especializados** como RAGState para processamento específico de domínio.
 
 #### 4.5.4. Contratos de Output - Structured Responses
 
-**🏗️ Arquitetura de Integração:**
+**Arquitetura de Integração:**
 
 As tools utilizam **contratos estruturados** (Pydantic/TypedDict) que garantem **integração consistente** com o state principal. Cada tool retorna dados em formato padronizado que o system pode processar de forma determinística, **integrando-se ao Command Pattern** para state updates precisos.
 
@@ -1135,9 +1078,9 @@ graph TD
     end
 ```
 
-##### **Contratos Implementados (models.py):**
+##### **Contratos Estruturados:**
 
-**📋 1. EtceProcessoResponse (TypedDict)**
+**1. EtceProcessoResponse (TypedDict)**
 ```python
 class EtceProcessoResponse(TypedDict):
     numero_processo: Optional[str] = None      # Ex: "TC/001234/2024"
@@ -1149,7 +1092,7 @@ class EtceProcessoResponse(TypedDict):
     localizacao_atual: Optional[str] = None    # Ex: "SEGECEX/DICAM"
 ```
 
-**📂 2. EtceExpedienteResponse (TypedDict)**
+**2. EtceExpedienteResponse (TypedDict)**
 ```python
 class EtceExpedienteResponse(TypedDict):
     numero_expediente: Optional[str] = None    # Ex: "EXP-2024-12345"
@@ -1160,7 +1103,7 @@ class EtceExpedienteResponse(TypedDict):
     situacao_atual: Optional[str] = None       # Ex: "Aguardando manifestação"
 ```
 
-**🌐 3. WebSearchResponse (BaseModel)**
+**3. WebSearchResponse (BaseModel)**
 ```python
 class WebSearchResult(BaseModel):
     title: Optional[str] = None                # Título da página encontrada
@@ -1172,35 +1115,11 @@ class WebSearchResponse(BaseModel):
     overall_summary: Optional[str] = None      # Síntese geral dos achados
     relevance_score: Optional[float] = None    # Score de relevância (0.0-1.0)
 ```
+#### 4.5.3. Padrão de Resposta das Ferramentas
 
-**💬 4. Human-in-the-Loop Response**
-```python
-# Retorno direto como string
-return "Resposta do operador humano baseada na pergunta formulada"
-```
+O **padrão de resposta das ferramentas** no ChatContas demonstra a aplicação prática do **Command Pattern** anteriormente descrito, onde cada tool não apenas executa sua funcionalidade específica, mas também **atualiza o estado do sistema** de forma estruturada. Este padrão garante que todas as ferramentas sigam uma **interface consistente** para modificação de estado e retorno de dados estruturados.
 
-##### **Integração com SwarmState:**
-
-**🔄 Fluxo de Dados:**
-1. **Tool Execution**: Agente chama tool com parâmetros específicos
-2. **Structured Response**: Tool retorna dados no contrato definido 
-3. **State Integration**: Response é integrado ao SwarmState apropriado
-4. **Agent Processing**: Agente processa dados estruturados para resposta final
-
-**⚙️ Vantagens dos Contratos Estruturados:**
-- **Type Safety**: Pydantic garante validação automática de tipos
-- **Consistent Interface**: Padrão uniforme para todas as tools
-- **Easy Integration**: State management simplificado com structured data
-- **Error Handling**: Validação automática previne erros de integração
-- **Documentation**: Contratos servem como documentação viva da API
-
-**Detalhamento das Tools:**
-- **`etce_processos_info_tool`**: Retorna dados estruturados de processos conforme `EtceProcessoResponse`
-- **`etce_expedientes_info_tool`**: Retorna dados de expedientes conforme `EtceExpedienteResponse`  
-- **`web_search_tool`**: Busca web especializada retornando `WebSearchResponse` com resultados rankeados
-- **`human_in_the_loop`**: Interrupção estratégica retornando string com input do operador humano
-
-#### 4.5.3. Tool Response Pattern - Command Pattern
+A implementação segue uma **abordagem dual** onde a ferramenta primeiro **gera uma resposta estruturada** utilizando o modelo LLM com output tipado, e em seguida **retorna um Command** que encapsula tanto os dados obtidos quanto as atualizações necessárias no estado do workflow. Esta estratégia permite que o **LangGraph gerencie automaticamente** a propagação das mudanças através dos diferentes níveis de estado do sistema.
 
 ```python
 def etce_expedientes_info_tool(
@@ -1229,25 +1148,12 @@ def etce_expedientes_info_tool(
     )
 ```
 
-#### 4.5.4. Human-in-the-Loop Tool
+**Características Técnicas da Implementação:**
 
-```python
-def human_in_the_loop(
-    question_to_user: str, 
-    tool_call_id: Annotated[str, InjectedToolCallId]
-):
-    """Strategic human intervention tool"""
-    
-    user_response = interrupt({
-        "type": "human_intervention",
-        "question": question_to_user,
-        "tool_call_id": tool_call_id,
-        "priority": "high",
-        "context": "main_workflow",
-    })
-    
-    return f"Human operator responded: {user_response}"
-```
+A ferramenta demonstra **dois aspectos fundamentais** do padrão implementado. Primeiro, a **geração de resposta estruturada** utiliza o método `with_structured_output()` para garantir que os dados retornados sigam exatamente o contrato `EtceExpedienteResponse`, eliminando ambiguidades e garantindo **type safety** em todo o sistema. Segundo, o **retorno via Command** permite que a ferramenta atualize múltiplos aspectos do estado simultaneamente: a query original é preservada, a resposta estruturada é armazenada no campo apropriado, e uma mensagem formatada é adicionada ao histórico da conversa.
+
+Esta abordagem oferece **vantagens arquiteturais significativas** ao permitir que cada ferramenta seja **testável independentemente**, **auditável** através do histórico de comandos executados, e **composável** com outras ferramentas sem criar conflitos de estado. O padrão também facilita a **extensibilidade** do sistema, onde novas ferramentas podem ser adicionadas seguindo a mesma interface padronizada.
+
 
 ### 4.6. ENGENHARIA DE HANDOFF
 
@@ -1295,13 +1201,13 @@ O sistema utiliza análise inteligente da query do usuário para determinar **se
 
 ##### **Matriz de Decisão e Transferência**
 
-| **Origem** | **Destino** | **Trigger (Quando Fazer)** | **Dados Transferidos** | **Exemplo de Query** |
-|------------|-------------|----------------------------|----------------------|---------------------|
-| Main → RAG | Legislação/Acordão detectado | `query`, `document_type` | "Lei 14.133 teletrabalho" |
-| Main → Search | Expediente/Processo detectado | `query`, `expediente_number` | "Expediente 004506/2023" |
-| RAG → Search | Dados sistema necessários | `query`, `context` | "Expedientes sobre Lei X" |
-| Search → RAG | Contexto legal necessário | `query`, `system_results` | "Contexto legal processo Y" |
-| Any → Main | Coordenação complexa necessária | `query`, `agent_context` | "Consolidar múltiplas fontes" |
+| **Origem** | **Contexto** | **Trigger (Quando Fazer)** | **Dados Transferidos** |
+|------------|-------------|----------------------------|----------------------|
+| Main → RAG | Legislação/Acordão detectado | `query`, `document_type` |
+| Main → Search | Expediente/Processo detectado | `query`, `expediente_number` |
+| RAG → Search | Dados sistema necessários | `query`, `context` |
+| Search → RAG | Contexto legal necessário | `query`, `system_results` |
+| Any → Main | Coordenação complexa necessária | `query`, `agent_context` |
 
 #### 4.6.4. Fluxo de Handoff com Transição de Estado
 
@@ -1358,9 +1264,17 @@ sequenceDiagram
 
 ---
 
-## 6. PIPELINE RAG - DETALHAMENTO TÉCNICO
+## 6. AGENTE RAG - PIPELINE ESPECIALIZADO
 
-### 6.1. Arquitetura
+### Contexto e Justificativa
+
+O **RAG Agent** diferencia-se dos demais agentes por ser implementado como um **grafo de processamento sequencial** com **11 nós especializados**, ao invés de um agente conversacional tradicional. Esta abordagem resolve **desafios específicos** do processamento de documentos jurídico-administrativos: **preservação de contexto legal**, **validação automática de qualidade**, **retry logic inteligente**, e **integração com tecnologias especializadas** como Docling e Chonkie.
+
+O Pipeline RAG representa a **inovação técnica central** do ChatContas 2.0, onde **técnicas avançadas de recuperação** se integram com **processamento especializado** para documentos oficiais. Diferente dos RAG tradicionais que seguem o padrão simples "retrieve-then-generate", este pipeline implementa **conditional branching**, **quality control loops**, e **estratégias adaptativas de chunking** que garantem **respostas de qualidade institucional**.
+
+Esta seção apresenta a **arquitetura interna detalhada**, **fluxos de decisão condicionais**, **transições de estado especializadas**, e **configurações técnicas** que materializam os conceitos arquiteturais em **implementação executável**. O objetivo é fornecer o **conhecimento técnico necessário** para implementação, manutenção e evolução do componente mais crítico do sistema.
+
+### 6.1. Arquitetura de Alto Nível
 
 ```mermaid
 flowchart TD
@@ -1385,53 +1299,19 @@ flowchart TD
     HUMAN --> CLARIFICATION[Aguarda Esclarecimento]
     CLARIFICATION --> ANALYZE
     
-    DIRECT --> USER[👤 Usuário]
+    DIRECT --> USER[Usuário]
     AGENT_PROCESSING --> USER
 ```
 
-```mermaid
-graph LR
-    subgraph "Setup & Analysis"
-        N1[1. Vector DB Setup]
-        N2[2. Query Analysis] 
-    end
-    
-    subgraph "Ingestion (Conditional)"
-        N3[3. Chunk Strategy]
-        N4[4. Document Ingestion]
-    end
-    
-    subgraph "Retrieval & Grading"
-        N5[5. Document Retrieval]
-        N6[6. Relevance Grading]
-        N7[7. Query Rewrite]
-    end
-    
-    subgraph "Enhancement & Generation"
-        N8[8. Context Enrichment]
-        N9[9. Reranking]
-        N10[10. Response Generation]
-        N11[11. Quality Validation]
-        N12[12. Prepare State]
-    end
-    
-    N1 --> N2
-    N2 --> N3
-    N3 --> N4
-    N4 --> N5
-    N2 --> N5
-    N5 --> N6
-    N6 --> N7
-    N7 --> N5
-    N6 --> N8
-    N8 --> N9
-    N9 --> N10
-    N10 --> N11
-    N11 --> N7
-    N11 --> N12
-```
+### 6.2. Lógica Condicional do Pipeline
 
-### 6.2. Conditional Edges - Implementação
+A **lógica condicional** representa um dos aspectos mais **inovadores do Pipeline RAG**, permitindo que o sistema **adapte dinamicamente** seu fluxo de processamento baseado no **estado atual** e nas **características específicas** de cada consulta. Diferente de pipelines RAG lineares que seguem sempre a mesma sequência, o ChatContas implementa **branching inteligente** que otimiza o processamento conforme a necessidade específica de cada documento ou query.
+
+O sistema utiliza **três pontos de decisão críticos** que determinam caminhos alternativos de execução: **ingestão condicional de documentos**, **reescrita adaptativa de queries**, e **controle de qualidade com retry automático**. Cada ponto de decisão analisa o **estado específico do RAGState** e direciona a execução para o **caminho mais apropriado**, garantindo tanto **eficiência operacional** quanto **qualidade das respostas**.
+
+**Características Fundamentais da Implementação:**
+
+A arquitetura implementa **conditional edges** através de funções de decisão especializadas que examinam campos específicos do estado atual e retornam **identificadores de próximo nó**. Esta abordagem permite que o **LangGraph execute automaticamente** o branching apropriado sem intervenção manual, mantendo **determinismo** nas decisões enquanto oferece **adaptabilidade** às variações de entrada.
 
 ```python
 # Conditional edges implementados no graph.py
@@ -1454,7 +1334,19 @@ rag_graph.add_conditional_edges(
 )
 ```
 
-### 6.3. RAG State Transitions
+**Benefícios do Branching Condicional:**
+
+Esta implementação oferece **vantagens operacionais significativas** ao evitar processamento desnecessário quando documentos já estão disponíveis no vector database, **otimizar iterativamente** a qualidade da query quando relevância é inadequada, e **garantir padrões de qualidade** através de retry automático até atingir score mínimo ou limite de tentativas. O sistema também mantém **graceful degradation**, onde mesmo consultas que não atingem qualidade ideal são processadas após esgotar tentativas de melhoria, garantindo **responsividade** mesmo em cenários desafiadores.
+
+### 6.3. Transições de Estado no Pipeline
+
+As **transições de estado** no Pipeline RAG representam a **progressão sistemática** dos dados através dos diferentes estágios de processamento, onde cada nó especializado **enriquece o RAGState** com informações específicas de sua função. Esta arquitetura de **máquina de estados** garante que **cada etapa do pipeline** tenha acesso aos dados necessários enquanto **mantém isolamento** entre responsabilidades distintas.
+
+O fluxo de transições implementa **três padrões fundamentais**: **progressão linear** através dos nós de setup e análise inicial, **branching condicional** nos pontos de decisão que permitem otimização do processamento, e **loops de qualidade** que garantem retry automático até atingir padrões mínimos ou esgotar tentativas. Cada transição é **determinística** baseada no estado atual, mas o **path específico** pode variar conforme as características da consulta.
+
+**Fases de Transição Detalhadas:**
+
+A **fase de setup** (vector_db_setup → query_analysis) inicializa recursos necessários e classifica a query para determinar estratégia de processamento. A **fase condicional** (query_analysis → chunk_strategy/document_retrieval) demonstra o primeiro branching, onde ingestão de documentos ocorre apenas quando necessária. A **fase de processamento** (document_retrieval → relevance_grading → context_enrichment/query_rewrite) implementa a lógica central de recuperação e avaliação, com possibilidade de **otimização iterativa** da query. Finalmente, a **fase de finalização** (response_generation → quality_validation → prepare_state/retry) garante qualidade através de **controle automático** com retry até limite estabelecido.
 
 ```mermaid
 stateDiagram-v2
@@ -1476,11 +1368,19 @@ stateDiagram-v2
     prepare_state --> [*]
 ```
 
+**Características Técnicas das Transições:**
+
+O sistema implementa **transições thread-safe** onde cada mudança de estado é **atômica** e **auditável**, permitindo rollback em caso de falha. Os **conditional edges** utilizam **funções determinísticas** que analisam campos específicos do RAGState (ingestion_required, needs_rewrite, quality_score, retry_count) e retornam **identificadores precisos** do próximo nó. Esta arquitetura garante **previsibilidade** no comportamento do pipeline enquanto oferece **flexibilidade** para diferentes tipos de consulta e **robustez** através de **graceful degradation** em cenários desafiadores.
+
 ---
 
 ## 7. FLUXOS REAIS DE INTERAÇÃO
 
-### 7.1. Cenário 1: Consulta Legislação - Pipeline RAG
+Com a **arquitetura multi-agente** e o **Pipeline RAG** detalhados nas seções anteriores, esta seção apresenta **cenários práticos de uso** que demonstram como os diferentes componentes do ChatContas colaboram para resolver consultas específicas do TCE-PA. Cada cenário ilustra **fluxos reais de interação** entre usuários, agentes especializados, e sistemas externos, mostrando tanto o **comportamento operacional** quanto as **decisões técnicas** que ocorrem durante o processamento.
+
+Os cenários selecionados representam os **casos de uso mais frequentes** na operação institucional: consultas sobre legislação que requerem processamento de documentos oficiais, expedientes que necessitam integração com sistema eTCE, handoffs entre agentes para aproveitamento de expertise específica, e intervenção humana para casos ambíguos que requerem esclarecimento.
+
+### 7.1. Cenário: Consulta Legislação - Pipeline RAG Completo
 
 ```mermaid
 sequenceDiagram
@@ -1522,6 +1422,18 @@ sequenceDiagram
     R->>U: "Resposta sobre teletrabalho Lei 14.133 com citações"
 ```
 
+**Análise do Fluxo Operacional:**
+
+Este cenário demonstra a **especialização documental** do RAG Agent em ação, onde uma consulta sobre **legislação específica** aciona automaticamente o **pipeline completo de processamento**. O fluxo ilustra como o sistema **converte state entre formatos** (SwarmState → RAGState → SwarmState) para permitir processamento especializado while preserving context.
+
+**Decisões Técnicas Críticas:**
+
+O **ponto de entrada** via RAG Agent (direto ou por handoff) desencadeia **conversão automática** para RAGState, permitindo acesso aos 50+ campos especializados do pipeline. A **classificação da query** (query_type="legislation") determina estratégias específicas de chunking e retrieval otimizadas para documentos jurídicos. O **ingestion_required=false** indica que documentos da Lei 14.133 já estão indexados, pulando a ingestão e otimizando performance. A **estratégia "recursive"** do chunk_strategy_node respeita a estrutura hierárquica (artigos, parágrafos, incisos) típica de legislação.
+
+**Qualidade e Validação:**
+
+O **quality_score=0.87** supera o threshold mínimo (0.7), permitindo que o sistema prossiga direto para prepare_state sem necessidade de retry. Esta validação automática garante que respostas sobre legislação atendam **padrões de qualidade institucional** antes de serem apresentadas ao usuário. O **resultado final** inclui citações estruturadas e referências precisas aos artigos específicos da lei consultada.
+
 ### 7.2. Cenário 2: Consulta Expediente - Search Agent Direto
 
 ```mermaid
@@ -1550,8 +1462,20 @@ sequenceDiagram
     S->>S: consolidate_results()
     S->>S: format_institutional_response()
     
-    S->>U: "📂 Expediente: 004506/2023<br/>📅 Data: 15/03/2023<br/>🏛️ Unidade: Gabinete..."
+    S->>U: "Expediente: 004506/2023<br/>Data: 15/03/2023<br/>Unidade: Gabinete..."
 ```
+
+**Características da Especialização Sistêmica:**
+
+Este cenário exemplifica a **expertise de integração** do Search Agent, onde consultas sobre **expedientes específicos** acionam **ferramentas especializadas** para acesso direto ao sistema eTCE. Diferente do cenário anterior que requer processamento de documentos, este fluxo foca em **recuperação de dados estruturados** de sistemas transacionais em tempo real.
+
+**Execução de Ferramentas:**
+
+O **processamento** das tools (etce_expedientes_info_tool + web_search_tool) demonstra a **eficiência operacional** do Search Agent em **consolidar múltiplas fontes** simultaneamente. A **validação de formato** garante que o número do expediente segue o padrão institucional (EXP-YYYY-XXXXX) antes de executar consultas custosas ao sistema eTCE. O **structured output** via EtceExpedienteResponse e WebSearchResponse permite **integração determinística** dos resultados no response final.
+
+**Integração Multi-fonte:**
+
+A **consolidação de resultados** combina dados oficiais do sistema eTCE com informações contextuais da busca web, oferecendo ao usuário uma **visão completa** do expediente consultado. O **formato de resposta institucional** mantém padrões de apresentação que facilitam compreensão e ação por parte dos usuários do TCE-PA. Esta abordagem elimina necessidade de **consultas manuais** a múltiplos sistemas, centralizando informações em uma interface única.
 
 ### 7.3. Cenário 3: Handoff Main → RAG
 
@@ -1580,6 +1504,18 @@ sequenceDiagram
     
     Note over U: Usuário recebe resposta diretamente do RAG Agent
 ```
+
+**Mecânica de Transferência Inteligente:**
+
+Este cenário demonstra o **handoff opcional baseado em necessidade**, onde o Main Agent **identifica limitações** em sua capacidade para processar consultas sobre documentos específicos e **transfere controle** para o agente especializado. O processo ilustra **análise automática** de competência e **tomada de decisão** sobre quando delegar versus responder diretamente.
+
+**Análise de Competência Automática:**
+
+A **sequência de decisão** (analyze_query → can_handle_directly → needs_document_expertise) representa um **padrão de especialização inteligente** onde cada agente **avalia suas limitações** antes de assumir responsabilidade. A **detecção de "resolucao"** aciona **heurísticas específicas** que reconhecem necessidade de processamento documental especializado, exemplificando como o sistema **adapta comportamento** conforme o tipo de consulta.
+
+**Valor do Handoff Especializado:**
+
+O **RAG Pipeline completo** executado após o handoff inclui **análise temporal/vigência** específica para resoluções normativas, demonstrando como **especialização técnica** resulta em **qualidade superior** das respostas. O **usuário recebe resposta diretamente** do RAG Agent, eliminando **round-trip desnecessário** de volta ao Main Agent e otimizando **latência total** do sistema. Esta arquitetura permite que **cada agente foque** em sua expertise enquanto **mantém experiência fluida** para o usuário final.
 
 ### 7.4. Cenário 4: Human-in-the-Loop
 
@@ -1613,8 +1549,20 @@ sequenceDiagram
     
     S->>S: etce_processos_info_tool("TC/011165/2022")
     
-    S->>U: "🏛️ Processo: TC/011165/2022<br/>📅 Autuação: [data]<br/>👨‍⚖️ Relator: [nome]..."
+    S->>U: "Processo: TC/011165/2022<br/>Autuação: [data]<br/>Relator: [nome]..."
 ```
+
+**Padrão de Intervenção Humana Estratégica:**
+
+Este cenário ilustra a **ferramenta human-in-the-loop** em ação, onde o sistema **reconhece limitações** em sua capacidade de processar consultas ambíguas e **solicita intervenção humana** estratégica para esclarecimento. O fluxo demonstra como **inteligência artificial** e **expertise humana** colaboram para resolver casos que requerem **interpretação contextual** ou **conhecimento tácito** não disponível nos sistemas automatizados.
+
+**Análise de Confiança e Trigger de Intervenção:**
+
+A **sequência de avaliação** (analyze_query → confidence_check → requires_clarification) implementa um **sistema de confiança** que identifica quando queries são **excessivamente ambíguas** para processamento automatizado. O **confidence_check() → 0.2** representa um **threshold baixo** que aciona automaticamente a ferramenta de intervenção humana, exemplificando como o sistema **monitora sua própria performance** e **escala para expertise humana** quando necessário.
+
+**Fluxo de Esclarecimento e Retomada:**
+
+O **operador humano** analisa contexto conversacional e **formula pergunta específica** que elicita informação necessária para processar a consulta original. O **resume_with_clarification** permite que o sistema **retome processamento** com dados esclarecidos, demonstrando **integração fluida** entre intervenção humana e automação. A **subsequente transferência** para Search Agent mostra como **esclarecimento humano** habilita **processamento automatizado especializado**, otimizando recursos humanos para casos que realmente requerem intervenção enquanto **maximiza automação** para consultas que podem ser esclarecidas.
 
 ---
 
@@ -1624,25 +1572,25 @@ sequenceDiagram
 
 #### 8.1.1. Tecnologias Core
 
-**🏗️ Framework Base:**
+**Framework Base:**
 - **LangGraph**: Framework para multi-agent systems e state management
 - **Python 3.11+**: Linguagem principal com suporte completo a type hints
 - **Pydantic v2**: Validação de dados e contratos estruturados
 - **FastAPI**: API REST para exposição do sistema
 
-**🤖 LLM Provider:**
+**LLM Provider:**
 - **Azure OpenAI**: Provider exclusivo para todos os modelos
   - GPT-4o para agentes principais (reasoning complexo)
   - GPT-4o-mini para tarefas auxiliares (classificação, validação)
   - text-embedding-3-large para embeddings do RAG pipeline
 
-**💾 Infraestrutura de Dados:**
+**Infraestrutura de Dados:**
 - **PostgreSQL**: Cache principal e state persistence (substitui SQLite)
 - **Redis**: Cache de sessão, rate limiting e temporary storage
 - **Azure Index Search**: Vector database para RAG pipeline
 - **Azure Blob Storage**: Storage para documentos ingeridos
 
-**📊 Observabilidade:**
+**Observabilidade:**
 - **Langfuse**: Tracing e observabilidade completa
 
 ### 8.2. Estrutura de Projeto Sugerida
@@ -1696,13 +1644,15 @@ chatcontas-tce/
 
 #### 8.3.1. Fase 1: Foundation Infrastructure
 
-**🎯 Milestone 1.1: Core Infrastructure Setup**
+A primeira fase foca na construção da **infraestrutura base** necessária para suportar a **arquitetura multi-agente**:
+
+**Milestone 1.1: Core Infrastructure Setup**
 - Setup PostgreSQL cluster para state persistence
 - Configuração Redis para cache e rate limiting
 - Integração Azure OpenAI com credential management
 - Setup Langfuse para observabilidade e tracing
 
-**🎯 Milestone 1.2: Framework Foundation**
+**Milestone 1.2: Framework Foundation**
 - Implementação base do LangGraph SwarmState
 - AgentBuilder com dynamic prompt generation via pre-hooks
 - Sistema de handoffs opcionais entre agentes
@@ -1710,19 +1660,21 @@ chatcontas-tce/
 
 #### 8.3.2. Fase 2: Agent Development
 
-**🎯 Milestone 2.1: Main Agent (Coordenador)**
+A segunda fase concentra-se no desenvolvimento dos **três agentes especializados** que compõem o sistema:
+
+**Milestone 2.1: Main Agent (Coordenador)**
 - Router inteligente com decision logic
 - Integration com human-in-the-loop tool
 - Handoff tools para RAG e Search agents
 - Autonomous response capability
 
-**🎯 Milestone 2.2: Search Agent (eTCE + Web)**
+**Milestone 2.2: Search Agent (eTCE + Web)**
 - Integração com APIs eTCE (processos/expedientes)
 - Web search tool especializada em fontes institucionais
 - Structured responses com contratos Pydantic
 - Error handling e graceful degradation
 
-**🎯 Milestone 2.3: RAG Pipeline Agent**
+**Milestone 2.3: RAG Pipeline Agent**
 - Pipeline completo com nós especializados
 - Vector database setup e collection management
 - Document ingestion com Chonkie + Docling
@@ -1730,13 +1682,15 @@ chatcontas-tce/
 
 #### 8.3.3. Fase 3: Production Readiness
 
-**🎯 Milestone 3.1: API e Interface**
+A fase final prepara o sistema para **ambiente produtivo** com todas as **funcionalidades operacionais**:
+
+**Milestone 3.1: API e Interface**
 - FastAPI REST endpoints com authentication
 - Rate limiting e security hardening
 - Frontend interface (Streamlit ou React)
 - User session management
 
-**🎯 Milestone 3.2: DevOps e Monitoring**
+**Milestone 3.2: DevOps e Monitoring**
 - Containerização Docker completa
 - CI/CD pipeline (Azure DevOps/GitHub Actions)
 - Kubernetes deployment configs
