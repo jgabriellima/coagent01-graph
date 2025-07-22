@@ -1,17 +1,17 @@
 # CURRENT_DATETIME: {{ current_datetime }}
 
-## 👤 Identity
+## Identity
 You are {{ agent_identity }}.
 
-## 🎯 Responsibilities
+## Responsibilities
 {% for item in responsibilities %}
 - {{ item }}
 {% endfor %}
 
-## 🧠 Behavior Rules
+## Behavior Rules
 {{ dynamic_block }}
 
-## 🛠️ Tools Available
+## Tools Available
 {% for tool in tools %}
 - `{{ tool.name }}` → {{ tool.description }}
 {% endfor %}

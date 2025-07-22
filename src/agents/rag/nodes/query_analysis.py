@@ -1,11 +1,40 @@
 """
 Query Analysis Node for RAG Pipeline
-Analyzes user queries and determines processing strategy
+Analyzes user queries and determines processing strategy with pattern detection
 """
 
+import re
 from ..utils import llm
 from ..models.state import RAGState
 from ..models.responses import QueryAnalysisResult, DocumentToIngest
+
+from langgraph.types import Command
+
+
+def handoff_to_main_agent_node(state: RAGState) -> RAGState:
+    """
+    Handoff to main agent or search agent with proper state propagation and validation
+    
+    This node handles transitions from RAG subgraph back to the parent graph,
+    ensuring proper state cleanup and target validation.
+    """
+    # Validate handoff target exists and is valid
+    if not state.handoff_to_agent:
+        # Fallback: if no handoff specified, should not reach this node
+        # Return to continue processing in RAG pipeline
+        return state.copy(handoff_to_agent=None)
+    
+    # Prepare clean state update for parent graph
+    update = {
+        "messages": state.messages,
+        "handoff_to_agent": None,  # Reset to prevent handoff loops
+    }
+    
+    return Command(
+        goto=state.handoff_to_agent,  # Target: "Main_Agent" or "Search_Agent"
+        graph=Command.PARENT,         # Return to parent workflow graph
+        update=update,
+    )
 
 
 def query_analysis_node(state: RAGState) -> RAGState:
@@ -28,25 +57,27 @@ def query_analysis_node(state: RAGState) -> RAGState:
                 break
 
     instruction = f"""
-    Analise a consulta e classifique conforme padrões de documentos oficiais:
-    
     Query: "{state.messages[-1].content}"
-    Arquivos fornecidos: {state.file_paths}
-    Documentos já processados: {state.user_documents}
+    Arquivos: {state.file_paths}
+    Processados: {state.user_documents}
     
-    Determine:
-    1. Tipo de consulta (legislation, acordao, resolucao, jurisprudencia)
-    2. Complexidade (simple, medium, complex)
+    DECISÃO DE HANDOFF:
+    
+    SEARCH AGENT → Expedientes (XXXXXX/YYYY), processos (TC/XXXXXX/YYYY), busca web
+    MAIN AGENT → Consultas sobre capacidades/sistema, navegação, orientações gerais
+    RAG LOCAL → Documentos oficiais, legislação, acordãos, jurisprudência
+    
+    Se handoff para Search_Agent ou Main_Agent for necessário, retorne:
+    "handoff_to_agent": "Search_Agent" ou "Main_Agent"
+    
+    Se nao for necessário handoff, classifique:
+    1. Tipo: legislation/acordao/resolucao/jurisprudencia
+    2. Complexidade: simple/medium/complex
     3. Contexto temporal necessário
-    4. Bases de dados relevantes
-    5. Processamento de arquivos:
-       - Se há arquivos novos em file_paths: ingestion_required=True
-       - Se todos os arquivos já foram processados: ingestion_required=False
-       - Se não há arquivos: ingestion_required=False
+    4. Bases relevantes  
+    5. ingestion_required: {needs_ingestion}
     
-    IMPORTANTE: ingestion_required deve ser {needs_ingestion} baseado na verificação de arquivos.
-    
-    Considere padrões típicos de consultas em documentos oficiais.
+    Priorize padrões detectados sobre análise semântica.
     """
 
     analysis = llm(

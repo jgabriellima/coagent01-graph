@@ -17,7 +17,7 @@ def document_retrieval_node(state: RAGState) -> RAGState:
     
     # Single LLM call to generate chunks
     instruction = f"""
-    Generate 3 realistic document small chunks that would be retrieved for: "{state.processed_query}"
+    Generate ONLY 3 realistic document small chunks that would be retrieved for: "{state.processed_query}"
     Make it sound like actual institutional document content relevant to the query.
     Return as ChunkingResult with chunks list.
     """

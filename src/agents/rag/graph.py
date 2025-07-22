@@ -20,6 +20,7 @@ from src.agents.rag.nodes import (
     reranking_node,
     response_generation_node,
     quality_validation_node,
+    handoff_to_main_agent_node,
 )
 from langgraph.cache.memory import InMemoryCache
 from langchain.globals import set_llm_cache
@@ -32,7 +33,11 @@ set_llm_cache(SQLiteCache(database_path="llm_cache.db"))
 
 def needs_ingestion_decision(state: RAGState) -> str:
     """Decide se necessita ingestão de documentos"""
-    return "ingestion" if state.ingestion_required else "continue"
+
+    if state.handoff_to_agent:
+        return "handoff_to_main_agent"
+    else:
+        return "ingestion" if state.ingestion_required else "continue"
 
 
 def needs_rewrite_decision(state: RAGState) -> str:
@@ -116,6 +121,7 @@ def build_rag_agent():
     rag_graph.add_node("response_generation", response_generation_node)
     rag_graph.add_node("quality_validation", quality_validation_node)
     rag_graph.add_node("prepare_state", prepare_state_node)
+    rag_graph.add_node("handoff_to_main_agent", handoff_to_main_agent_node)
 
     # Set entry point
     rag_graph.set_entry_point("vector_db_setup")
@@ -127,9 +133,14 @@ def build_rag_agent():
     rag_graph.add_conditional_edges(
         "query_analysis",
         needs_ingestion_decision,
-        {"ingestion": "chunk_strategy_selection", "continue": "document_retrieval"},
+        {
+            "ingestion": "chunk_strategy_selection",
+            "handoff_to_main_agent": "handoff_to_main_agent",
+            "continue": "document_retrieval",
+        },
     )
 
+    # rag_graph.add_edge("handoff_to_main_agent", END)
     # Fluxo de ingestão
     rag_graph.add_edge("chunk_strategy_selection", "document_ingestion")
     rag_graph.add_edge("document_ingestion", "document_retrieval")

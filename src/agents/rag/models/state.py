@@ -131,6 +131,10 @@ class RAGState(BaseModel):
     messages: Annotated[List[BaseMessage], add_messages] = Field(
         default_factory=lambda: [], description="Mensagens do pipeline RAG"
     )
+    
+    handoff_to_agent: Optional[str] = Field(
+        default=None, description="Nome do agente para handoff"
+    )
 
     def copy(self, **kwargs):
         """Create a copy of the state with optional field updates"""

@@ -48,27 +48,7 @@ def create_handoff_tool_with_state_propagation(
             tool_call_id=tool_call_id,
         )
 
-        update = {
-            "messages": state["messages"] + [tool_message],
-            "active_agent": agent_name,
-        }
-
-        if propagate_keys:
-            update.update({key: state[key] for key in propagate_keys if key in state})
-        else:
-            update.update(
-                {
-                    k: v
-                    for k, v in state.items()
-                    if k not in ["messages", "active_agent"]
-                }
-            )
-
-        return Command(
-            goto=agent_name,
-            graph=Command.PARENT,
-            update=update,
-        )
+        
 
     handoff_to_agent_with_state.metadata = {
         METADATA_KEY_HANDOFF_DESTINATION: agent_name

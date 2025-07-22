@@ -1,0 +1,42 @@
+[
+    {
+        "content": "What would you say {{bank_name}} is seeking to achieve with this project?",
+        "html_selector": "Project Goal"
+    },
+    {
+        "content": "Any urgent work you would like prioritized accordingly?",
+        "html_selector": "Project Priority"
+    },
+    {
+        "content": "Do you currently use Temenos products and, if so, can you tell which products and versions you currently use?",
+        "html_selector": "Temenos Status"
+    },
+    {
+        "content": "Are retail and business client types both served and, if so, are there any significant differences between these two in terms of functionality that you would like to point out?",
+        "html_selector": "Client Types"
+    },
+    {
+        "content": "Besides the Online Banking application, Temenos‘ Infinity supports mobile apps for both Android and iOS. Are all these expected to be implemented?",
+        "html_selector": "Temenos Modules"
+    },
+    {
+        "content": "When would you be expecting to initiate the work discussed so far, and are there any critical dates to be aware of?",
+        "html_selector": "Key Dates Critical"
+    },
+    {
+        "content": "If required, how soon would you or other responsible personnel be available to meet with Tailwind representatives, to further discuss and detail the scope of work?",
+        "html_selector": "Key Dates Tailwind"
+    },
+    {
+        "content": "Are you able to point out which CORE is currently used by {{bank_name}}?",
+        "html_selector": "Appendix B Core"
+    },
+    {
+        "content": "About external services and endpoints, such as the ones used for user authentication, payments, transfers, air time top-up, or others. Are you able to  describe which ones you use and for what?",
+        "html_selector": "Appendix B External"
+    },
+    {
+        "content": "Is it required to have support for multiple languages, if so, which ones?",
+        "html_selector": "Appendix B Language"
+    }
+]

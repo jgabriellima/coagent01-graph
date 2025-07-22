@@ -19,10 +19,13 @@ class DocumentToIngest(BaseModel):
     class Config:
         extra = "forbid"
 
+
 class QueryAnalysisResult(BaseModel):
     """Resultado da análise de query"""
 
-    processed_query: str = Field(description="Query processada e ajustada para maximizar a consulta")
+    processed_query: str = Field(
+        description="Query processada e ajustada para maximizar a consulta"
+    )
     query_type: Literal["legislation", "acordao", "resolucao", "jurisprudencia"] = (
         Field(description="Tipo da query")
     )
@@ -35,10 +38,16 @@ class QueryAnalysisResult(BaseModel):
     analysis_confidence: Optional[float] = Field(
         description="Confiança da análise", ge=0.0, le=1.0
     )
-    documents_to_ingest: Optional[List[DocumentToIngest]] = Field(description="Documentos que precisam ser ingeridos")
+    documents_to_ingest: Optional[List[DocumentToIngest]] = Field(
+        description="Documentos que precisam ser ingeridos"
+    )
+    handoff_to_agent: Optional[str] = Field(None, 
+        description="Nome do agente para handoff"
+    )
 
     class Config:
         extra = "forbid"
+
 
 class ChunkStrategyResult(BaseModel):
     """Resultado da seleção de estratégia de chunking"""

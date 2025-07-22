@@ -6,5 +6,5 @@ subprocess.run(
     ["openai", "tools", "fine_tunes.prepare_data", "-f", "finetune/data.jsonl"]
 )
 subprocess.run(
-    ["openai", "api", "fine_tunes.create", "-t", "file-XXXXX", "-m", "gpt-3.5-turbo"]
+    ["openai", "api", "fine_tunes.create", "-t", "file-XXXXX", "-m", "gpt-4o-mini"]
 )
